@@ -28,15 +28,6 @@ function formatAge(timestamp?: number) {
   return `${Math.floor(seconds / 60)}m ago`;
 }
 
-function useClock() {
-  const [time, setTime] = useState(new Date());
-  useEffect(() => {
-    const id = window.setInterval(() => setTime(new Date()), 1000);
-    return () => window.clearInterval(id);
-  }, []);
-  return time;
-}
-
 function Splash({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     const id = window.setTimeout(onDone, 2300);
@@ -97,7 +88,6 @@ export default function App() {
   const [marketFilter, setMarketFilter] = useState<'All' | 'Majors' | 'Metals' | 'Favorites'>('All');
   const [toolsOpen, setToolsOpen] = useState(false);
   const [showFloatingTools, setShowFloatingTools] = useState(false);
-  const time = useClock();
   const finishSplash = useCallback(() => setBooted(true), []);
 
   useEffect(() => {
