@@ -52,10 +52,10 @@ function TradeActions({ pair, onTrade, compact = false }: { pair: MarketPair; on
       </div>
       <div className="terminal-trade-buttons">
         <button className="trade-button sell" onClick={() => onTrade('sell')} aria-label={pair.symbol + ' Sell via Exness'}>
-          <span>Sell</span><strong>{sellPrice}</strong><small>Exness</small>
+          <span className="trade-side">Sell</span><strong className="trade-price">{sellPrice}</strong><small className="trade-provider">Exness</small>
         </button>
         <button className="trade-button buy" onClick={() => onTrade('buy')} aria-label={pair.symbol + ' Buy via Exness'}>
-          <span>Buy</span><strong>{buyPrice}</strong><small>Exness</small>
+          <span className="trade-side">Buy</span><strong className="trade-price">{buyPrice}</strong><small className="trade-provider">Exness</small>
         </button>
       </div>
     </div>
