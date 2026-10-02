@@ -2,8 +2,8 @@
   "name": "BerreX — Markets",
   "short_name": "BerreX",
   "description": "Forex market intelligence in an iOS-inspired PWA.",
-  "start_url": "/berrex/",
-  "scope": "/berrex/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#eef3fb",
@@ -11,7 +11,7 @@
   "lang": "en",
   "icons": [
     {
-      "src": "/berrex/favicon.svg",
+      "src": "favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

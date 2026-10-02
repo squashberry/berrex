@@ -1,9 +1,10 @@
-const CACHE = 'berrex-shell-v1';
+const CACHE = 'berrex-shell-v2';
+const BASE = new URL('./', self.registration.scope).pathname;
 const SHELL = [
-  '/berrex/',
-  '/berrex/index.html',
-  '/berrex/manifest.webmanifest',
-  '/berrex/favicon.svg'
+  BASE,
+  `${BASE}index.html`,
+  `${BASE}manifest.webmanifest`,
+  `${BASE}favicon.svg`
 ];
 
 self.addEventListener('install', (event) => {
