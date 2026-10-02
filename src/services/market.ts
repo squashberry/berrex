@@ -149,6 +149,12 @@ export async function fetchTwelveSeries(symbol: string): Promise<number[]> {
 }
 
 export async function convertCurrency(amount: number, symbol: string): Promise<number> {
+  if (MARKET_API_URL) {
+    const response = await fetch(MARKET_API_URL + '/convert?symbol=' + encodeURIComponent(symbol) + '&amount=' + encodeURIComponent(amount));
+    if (!response.ok) throw new Error('BerreX conversion proxy failed: ' + response.status);
+    const body = await response.json() as { amount?: number; rate?: number };
+    return Number(body.amount ?? amount * Number(body.rate ?? 1));
+  }
   if (!TWELVE_KEY) return amount;
   const response = await fetch(`https://api.twelvedata.com/currency_conversion?symbol=${encodeURIComponent(symbol)}&amount=${encodeURIComponent(amount)}&apikey=${encodeURIComponent(TWELVE_KEY)}`);
   if (!response.ok) throw new Error(`Conversion request failed: ${response.status}`);
