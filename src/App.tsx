@@ -5,13 +5,14 @@ import { AIInsight } from './components/AIInsight';
 import { PairCard } from './components/PairCard';
 import { MarketTerminal } from './components/MarketTerminal';
 import { MarketSparkline } from './components/MarketSparkline';
+import { MarketLab } from './components/MarketLab';
 import { Icon } from './lib/icons';
 import { DEFAULT_SELECTED, EVENTS, INITIAL_MARKETS, NEWS } from './data/market';
 import { convertCurrency, fetchEconomicCalendar, fetchLiveMarkets, fetchLiveNews, fetchTwelveSeries, simulatedTick } from './services/market';
 import { requestAiInsight } from './services/ai';
 import type { EconomicEvent, MarketPair, NewsItem, PriceAlert, PriceAlertCondition } from './types';
 
-type Tab = 'home' | 'markets' | 'news' | 'profile';
+type Tab = 'home' | 'markets' | 'news' | 'lab' | 'profile';
 type Overlay = 'notifications' | 'converter' | 'alert' | 'calendar' | 'search' | null;
 
 const EXNESS_URL = import.meta.env.VITE_EXNESS_REFERRAL_URL || 'https://www.exness.com/';
@@ -324,6 +325,7 @@ export default function App() {
         {activeTab === 'home' && renderHome()}
         {activeTab === 'markets' && renderMarkets()}
         {activeTab === 'news' && renderNews()}
+        {activeTab === 'lab' && <MarketLab markets={markets} events={events} news={news} favoriteSymbols={favoriteSymbols} onToggleFavorite={toggleFavorite} onOpenPair={openPair} onRefresh={() => { setLoadingData(true); void fetchLiveMarkets(markets).then(setMarkets).finally(() => setLoadingData(false)); }} />}
         {activeTab === 'profile' && renderProfile()}
       </main>
       <BottomNav active={activeTab} onChange={setActiveTab} />
@@ -337,6 +339,7 @@ export default function App() {
           <button onClick={() => { setOverlay('calendar'); setToolsOpen(false); }}><span><Icon name="calendar" size={17} /></span><strong>Calendar</strong><small>Macro events</small></button>
           <button onClick={() => { setOverlay('alert'); setAlertTarget(formatPrice(selected)); setToolsOpen(false); }}><span><Icon name="bell" size={17} /></span><strong>Alerts</strong><small>{alerts.length || 'Set one'}</small></button>
           <button onClick={() => { setActiveTab('markets'); setToolsOpen(false); }}><span><Icon name="search" size={17} /></span><strong>Explore</strong><small>Find a pair</small></button>
+          <button onClick={() => { setActiveTab('lab'); setToolsOpen(false); }}><span><Icon name="spark" size={17} /></span><strong>Market Lab</strong><small>Screener + risk + macro</small></button>
         </div>}
       </div>
 
