@@ -103,3 +103,69 @@ export function aggregateCandles(candles: Candle[], bucketMs: number): Candle[] 
   if (current) grouped.push(current);
   return grouped;
 }
+
+export function bollinger(values: number[], period = 20, multiplier = 2) {
+  const middle = sma(values, period);
+  return values.map((_, index) => {
+    if (index + 1 < period) return { upper: null, middle: middle[index], lower: null };
+    const slice = values.slice(index + 1 - period, index + 1);
+    const mean = slice.reduce((sum, value) => sum + value, 0) / period;
+    const variance = slice.reduce((sum, value) => sum + (value - mean) ** 2, 0) / period;
+    const deviation = Math.sqrt(variance) * multiplier;
+    return { upper: mean + deviation, middle: mean, lower: mean - deviation };
+  });
+}
+
+export function atr(candles: Candle[], period = 14) {
+  if (candles.length <= period) return candles.length ? Math.abs(candles.at(-1)!.high - candles.at(-1)!.low) : 0;
+  const ranges = candles.map((candle, index) => {
+    if (index === 0) return candle.high - candle.low;
+    const previous = candles[index - 1].close;
+    return Math.max(candle.high - candle.low, Math.abs(candle.high - previous), Math.abs(candle.low - previous));
+  });
+  let value = ranges.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < ranges.length; i += 1) value = ((value * (period - 1)) + ranges[i]) / period;
+  return value;
+}
+
+export function stochastic(candles: Candle[], period = 14) {
+  if (candles.length < period) return 50;
+  const slice = candles.slice(-period);
+  const high = Math.max(...slice.map(c => c.high));
+  const low = Math.min(...slice.map(c => c.low));
+  return high === low ? 50 : ((candles.at(-1)!.close - low) / (high - low)) * 100;
+}
+
+export function adx(candles: Candle[], period = 14) {
+  if (candles.length <= period + 1) return 0;
+  let trSum = 0;
+  let plusSum = 0;
+  let minusSum = 0;
+  for (let i = candles.length - period; i < candles.length; i += 1) {
+    const current = candles[i];
+    const previous = candles[i - 1];
+    const upMove = current.high - previous.high;
+    const downMove = previous.low - current.low;
+    const tr = Math.max(current.high - current.low, Math.abs(current.high - previous.close), Math.abs(current.low - previous.close));
+    trSum += tr;
+    plusSum += upMove > downMove && upMove > 0 ? upMove : 0;
+    minusSum += downMove > upMove && downMove > 0 ? downMove : 0;
+  }
+  if (!trSum) return 0;
+  const plus = 100 * plusSum / trSum;
+  const minus = 100 * minusSum / trSum;
+  const denominator = plus + minus;
+  return denominator ? 100 * Math.abs(plus - minus) / denominator : 0;
+}
+
+export function vwap(candles: Candle[]) {
+  let cumulativeVolume = 0;
+  let cumulativePriceVolume = 0;
+  return candles.map((candle) => {
+    const typical = (candle.high + candle.low + candle.close) / 3;
+    const proxyVolume = Math.max(candle.high - candle.low, 0.0000001);
+    cumulativeVolume += proxyVolume;
+    cumulativePriceVolume += typical * proxyVolume;
+    return cumulativePriceVolume / cumulativeVolume;
+  });
+}
