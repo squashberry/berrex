@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { EconomicEvent, MarketPair, NewsItem } from '../types';
 import { ema, rsi, sma } from '../lib/technical';
 import { Icon } from '../lib/icons';
+import { cloudConfigured, getCloudSession, loadCommunityIdeas, loadWorkspace, publishCommunityIdea, saveWorkspace as saveCloudWorkspace, signIn, signOut, signUp } from '../services/cloud';
 
 type Props = {
   markets: MarketPair[];
@@ -71,6 +72,13 @@ export function MarketLab({markets,events,news,favoriteSymbols,onToggleFavorite,
   });
   const [journalForm,setJournalForm]=useState({side:'BUY',result:'',note:''});
   const [ideaForm,setIdeaForm]=useState({title:'',bias:'Bullish',note:''});
+  const [cloudSession,setCloudSession]=useState(getCloudSession());
+  const [cloudEmail,setCloudEmail]=useState('');
+  const [cloudPassword,setCloudPassword]=useState('');
+  const [cloudMode,setCloudMode]=useState<'signin'|'signup'>('signin');
+  const [cloudBusy,setCloudBusy]=useState(false);
+  const [cloudError,setCloudError]=useState('');
+  const [cloudIdeas,setCloudIdeas]=useState<Array<{id:string;user_id:string;symbol:string;title:string;bias:string;note:string;created_at:string}>>([]);
 
   const screened=useMemo(()=>markets.filter(pair=>{
     const q=query.trim().toLowerCase();
