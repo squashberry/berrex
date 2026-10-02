@@ -56,7 +56,7 @@ The FMP allowance supplied for this project is limited, so BerreX avoids aggress
 
 ## Cloudflare data proxy
 
-For a public Pages deployment, deploy `worker/` as a separate Cloudflare Worker and add the secrets `FMP_API_KEY` and optionally `TWELVE_DATA_API_KEY`. Set the BerreX build variable `VITE_MARKET_API_URL` to the Worker URL. The browser then calls `/quotes`, `/news`, `/calendar`, `/candles` and `/convert` without exposing provider keys.
+For a public Pages deployment, deploy `worker/` as a separate Cloudflare Worker and add the secrets `FMP_API_KEY` and optionally `TWELVE_DATA_API_KEY`. Set the BerreX build variable `VITE_MARKET_API_URL` to the Worker URL. The browser then calls `/quotes`, `/news`, `/calendar`, `/candles` and `/convert` without exposing provider keys. In GitHub, add `VITE_MARKET_API_URL` as a repository variable so the Pages workflow injects the public Worker URL at build time.
 
 ## Run locally
 
