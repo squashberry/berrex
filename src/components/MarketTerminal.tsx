@@ -148,7 +148,7 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, onTrade, aiTex
 
         <TradeActions pair={pair} onTrade={onTrade} />
 
-        <TradeActions pair={pair} onTrade={onTrade} />
+        {!tradeFloating && <TradeActions pair={pair} onTrade={onTrade} />}
 
         <div className="terminal-timeframes">
           {TIMEFRAMES.map((item) => <button key={item} className={item === timeframe ? 'active' : ''} onClick={() => setTimeframe(item)}>{item}</button>)}
