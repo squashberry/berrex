@@ -146,8 +146,6 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, onTrade, aiTex
           <button className="terminal-alert-button" onClick={onAlert}><Icon name="bell" size={16} /> Alert</button>
         </div>
 
-        {!tradeFloating && <TradeActions pair={pair} onTrade={onTrade} />}
-
         <div className="terminal-timeframes">
           {TIMEFRAMES.map((item) => <button key={item} className={item === timeframe ? 'active' : ''} onClick={() => setTimeframe(item)}>{item}</button>)}
         </div>
@@ -164,6 +162,8 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, onTrade, aiTex
             <div><span>Trend</span><strong>{pair.bias}</strong></div>
           </div>
         </div>
+
+        {!tradeFloating && <TradeActions pair={pair} onTrade={onTrade} />}
 
         <div className="terminal-stat-grid">
           <div><span>Open</span><strong>{last?.open.toFixed(precision) ?? '—'}</strong></div>
