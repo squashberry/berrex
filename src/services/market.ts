@@ -1,10 +1,8 @@
-import type { MarketPair, NewsItem } from '../types';
+import type { EconomicEvent, MarketPair, NewsItem } from '../types';
 
 const FMP_BASE = 'https://financialmodelingprep.com/stable';
 const FMP_KEY = import.meta.env.VITE_FMP_API_KEY as string | undefined;
 const TWELVE_KEY = import.meta.env.VITE_TWELVEDATA_API_KEY as string | undefined;
-
-const seedMap = new Map(INITIAL_SYMBOLS().map((symbol) => [symbol, 0]));
 
 function INITIAL_SYMBOLS() {
   return ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'XAUUSD'];
@@ -28,7 +26,6 @@ function pairFromFmp(row: any, fallback: MarketPair): MarketPair {
 
 export async function fetchLiveMarkets(fallback: MarketPair[]): Promise<MarketPair[]> {
   if (!FMP_KEY) return fallback;
-  const symbols = INITIAL_SYMBOLS().join(',');
   const response = await fetch(`${FMP_BASE}/batch-forex-quotes?apikey=${encodeURIComponent(FMP_KEY)}`);
   if (!response.ok) throw new Error(`FMP market request failed: ${response.status}`);
   const rows = await response.json() as any[];
@@ -53,7 +50,7 @@ export async function fetchLiveNews(): Promise<NewsItem[]> {
   }));
 }
 
-export async function fetchTwelveSeries(symbol: string): Promise<number[]> {
+export async function fetchEconomicCalendar(): Promise<EconomicEvent[]> {\n  if (!FMP_KEY) return [];\n  const from = new Date();\n  const to = new Date(Date.now() + 7 * 86400000);\n  const iso = (value: Date) => value.toISOString().slice(0, 10);\n  const response = await fetch(\`\${FMP_BASE}/economic-calendar?from=\${iso(from)}&to=\${iso(to)}&apikey=\${encodeURIComponent(FMP_KEY)}\`);\n  if (!response.ok) throw new Error(\`FMP calendar request failed: \${response.status}\`);\n  const rows = await response.json() as any[];\n  return rows.slice(0, 30).map((row) => ({\n    event: row.event ?? row.name ?? 'Economic event', country: row.country ?? '', currency: row.currency ?? '',\n    date: row.date ? new Date(row.date).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Upcoming',\n    impact: String(row.impact ?? 'Medium').toLowerCase().includes('high') ? 'High' : String(row.impact ?? '').toLowerCase().includes('low') ? 'Low' : 'Medium',\n    actual: row.actual, estimate: row.estimate, previous: row.previous,\n  }));\n}\n\nexport async function fetchTwelveSeries(symbol: string): Promise<number[]> {
   if (!TWELVE_KEY) return [];
   const response = await fetch(`https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=1h&outputsize=48&apikey=${encodeURIComponent(TWELVE_KEY)}`);
   if (!response.ok) throw new Error(`Twelve Data request failed: ${response.status}`);
