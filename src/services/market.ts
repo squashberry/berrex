@@ -69,7 +69,7 @@ export async function fetchEconomicCalendar(): Promise<EconomicEvent[]> {
   const from = new Date();
   const to = new Date(Date.now() + 7 * 86400000);
   const iso = (value: Date) => value.toISOString().slice(0, 10);
-  const response = await fetch(`\${FMP_BASE}/economic-calendar?from=\${iso(from)}&to=\${iso(to)}&apikey=\${encodeURIComponent(FMP_KEY)}`);
+  const response = await fetch(`${FMP_BASE}/economic-calendar?from=${iso(from)}&to=${iso(to)}&apikey=${encodeURIComponent(FMP_KEY)}`);
   if (!response.ok) throw new Error(`FMP calendar request failed: \${response.status}`);
   const rows = await response.json() as any[];
   return rows.slice(0, 30).map((row) => ({
