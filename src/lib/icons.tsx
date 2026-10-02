@@ -1,35 +1,15 @@
 import type { ReactNode, SVGProps } from 'react';
 
 export type IconName =
-  | 'home'
-  | 'chart'
-  | 'news'
-  | 'profile'
-  | 'search'
-  | 'bell'
-  | 'chevron'
-  | 'star'
-  | 'sun'
-  | 'moon'
-  | 'arrow'
-  | 'spark'
-  | 'clock'
-  | 'globe'
-  | 'shield'
-  | 'external';
+  | 'home' | 'chart' | 'news' | 'profile' | 'search' | 'bell' | 'chevron'
+  | 'star' | 'sun' | 'moon' | 'arrow' | 'spark' | 'clock' | 'globe'
+  | 'shield' | 'external' | 'convert' | 'calendar';
 
 export function Icon({ name, size = 20, strokeWidth = 1.9, fill = 'none', ...props }: SVGProps<SVGSVGElement> & { name: IconName; size?: number; strokeWidth?: number }) {
   const common = {
-    width: size,
-    height: size,
-    viewBox: '0 0 24 24',
-    fill,
-    stroke: 'currentColor',
-    strokeWidth,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-    'aria-hidden': true,
-    ...props,
+    width: size, height: size, viewBox: '0 0 24 24', fill, stroke: 'currentColor',
+    strokeWidth, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const,
+    'aria-hidden': true, ...props,
   };
 
   const paths: Record<IconName, ReactNode> = {
@@ -49,6 +29,8 @@ export function Icon({ name, size = 20, strokeWidth = 1.9, fill = 'none', ...pro
     globe: <><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.4 2.4 3.6 5.4 3.6 9S14.4 18.6 12 21c-2.4-2.4-3.6-5.4-3.6-9S9.6 5.4 12 3Z"/></>,
     shield: <><path d="M12 3 19 6v5c0 4.8-2.7 8.2-7 10-4.3-1.8-7-5.2-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></>,
     external: <><path d="M14 5h5v5"/><path d="M10 14 19 5"/><path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></>,
+    convert: <><path d="M7 7h11l-3-3"/><path d="M17 17H6l3 3"/><path d="M18 7a7 7 0 0 1 1.5 2.8M6 17a7 7 0 0 1-1.5-2.8"/></>,
+    calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/><path d="M8 14h3M13 14h3M8 17h3"/></>,
   };
 
   return <svg {...common}>{paths[name]}</svg>;
