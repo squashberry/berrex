@@ -201,13 +201,27 @@ export function MarketLab({markets,events,news,favoriteSymbols,onToggleFavorite,
     </>}
 
     {tab==='workspace'&&<>
+      <div className="cloud-auth-card">
+        <div className="cloud-auth-head">
+          <div><span className="eyebrow">13 · ACCOUNT & SYNC</span><h2>Cloud workspace</h2><p>{cloudConfigured ? 'Authenticated sync is available.' : 'Add Supabase project variables to enable cloud sync.'}</p></div>
+          {cloudSession&&<button className="secondary-button" onClick={handleCloudLogout}>Sign out</button>}
+        </div>
+        {!cloudSession&&cloudConfigured&&<div className="cloud-auth-form">
+          <input type="email" value={cloudEmail} onChange={e=>setCloudEmail(e.target.value)} placeholder="Email"/>
+          <input type="password" value={cloudPassword} onChange={e=>setCloudPassword(e.target.value)} placeholder="Password"/>
+          <button className="primary-button" disabled={cloudBusy} onClick={()=>void handleCloudAuth()}>{cloudBusy?'…':cloudMode==='signin'?'Sign in':'Create account'}</button>
+          <button className="text-button" onClick={()=>setCloudMode(v=>v==='signin'?'signup':'signin')}>{cloudMode==='signin'?'Create account':'Back to sign in'}</button>
+        </div>}
+        {cloudSession&&<div className="cloud-auth-status"><span className="status-on">Signed in</span><strong>{cloudSession.user.email||cloudSession.user.id}</strong><small>Workspace sync and community publishing enabled.</small></div>}
+        {cloudError&&<div className="lab-note">{cloudError}</div>}
+      </div>
       <div className="workspace-card"><div><span className="eyebrow">09 · WORKSPACE</span><h2>{workspaceName}</h2><p>Favorites, preferences, journal and ideas are saved on this device.</p></div><div className="workspace-edit"><input value={workspaceName} onChange={e=>setWorkspaceName(e.target.value)}/><button className="primary-button" onClick={saveWorkspace}>Save</button></div></div>
       <div className="lab-section-heading"><div><span className="eyebrow">10 · JOURNAL</span><h2>Private trade journal</h2></div></div>
       <div className="journal-form"><select value={journalForm.side} onChange={e=>setJournalForm(v=>({...v,side:e.target.value}))}><option>BUY</option><option>SELL</option></select><input value={journalForm.result} onChange={e=>setJournalForm(v=>({...v,result:e.target.value}))} placeholder="Result e.g. +$18"/><input value={journalForm.note} onChange={e=>setJournalForm(v=>({...v,note:e.target.value}))} placeholder="Why did you take it?"/><button className="primary-button" onClick={saveJournal}>Save</button></div>
       <div className="journal-list">{journal.slice(0,8).map(item=><div className="journal-row" key={item.id}><strong>{item.symbol}</strong><span>{item.side}</span><b>{item.result||'—'}</b><p>{item.note}</p></div>)}</div>
-      <div className="lab-section-heading"><div><span className="eyebrow">11 · MARKET IDEAS</span><h2>Ideas & community</h2></div><span className="muted-small">Local until a social backend is configured</span></div>
+      <div className="lab-section-heading"><div><span className="eyebrow">11 · MARKET IDEAS</span><h2>Ideas & community</h2></div><span className="muted-small">{cloudSession?'Cloud community':'Local until a social backend is configured'}</span></div>
       <div className="idea-form"><input value={ideaForm.title} onChange={e=>setIdeaForm(v=>({...v,title:e.target.value}))} placeholder="Idea title"/><select value={ideaForm.bias} onChange={e=>setIdeaForm(v=>({...v,bias:e.target.value}))}><option>Bullish</option><option>Bearish</option><option>Neutral</option></select><input value={ideaForm.note} onChange={e=>setIdeaForm(v=>({...v,note:e.target.value}))} placeholder="Market thesis"/><button className="primary-button" onClick={saveIdea}>Publish</button></div>
-      <div className="idea-list">{ideas.slice(0,8).map(idea=><button className="idea-row" key={idea.id} onClick={()=>onOpenPair(idea.symbol)}><div><span>{idea.symbol} · {idea.bias}</span><strong>{idea.title}</strong><p>{idea.note}</p></div><Icon name="chevron" size={15}/></button>)}</div>
+      <div className="idea-list">{(cloudSession?cloudIdeas.map(idea=>({id:idea.id,symbol:idea.symbol,title:idea.title,bias:idea.bias,note:idea.note})):ideas).slice(0,8).map(idea=><button className="idea-row" key={idea.id} onClick={()=>onOpenPair(idea.symbol)}><div><span>{idea.symbol} · {idea.bias}</span><strong>{idea.title}</strong><p>{idea.note}</p></div><Icon name="chevron" size={15}/></button>)}</div>
       <div className="lab-section-heading"><div><span className="eyebrow">12 · BROKER INTELLIGENCE</span><h2>Execution handoff</h2></div></div>
       <div className="broker-card"><div><strong>Exness</strong><span>Execution happens on the broker's own site.</span><small>BerreX can pass selected side and symbol context.</small></div><button className="primary-button" onClick={()=>window.open((import.meta.env.VITE_EXNESS_REFERRAL_URL||'https://www.exness.com/'),'_blank','noopener,noreferrer')}>Open Exness <Icon name="external" size={14}/></button></div>
       <div className="lab-section-heading"><div><span className="eyebrow">13 · ACCOUNT</span><h2>Cloud workspace</h2></div></div>
