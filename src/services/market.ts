@@ -13,10 +13,14 @@ function INITIAL_SYMBOLS() {
 function pairFromFmp(row: any, fallback: MarketPair): MarketPair {
   const price = Number(row.price ?? fallback.price);
   const change = Number(row.changePercentage ?? row.change ?? fallback.change24h);
+  const bid = Number(row.bid ?? row.bidPrice ?? fallback.bid ?? price);
+  const ask = Number(row.ask ?? row.askPrice ?? fallback.ask ?? price);
   const spark = [...fallback.sparkline.slice(1), price];
   return {
     ...fallback,
     price,
+    bid: Number.isFinite(bid) ? bid : price,
+    ask: Number.isFinite(ask) ? ask : price,
     change24h: Number(change.toFixed(2)),
     bias: change > 0.08 ? 'bullish' : change < -0.08 ? 'bearish' : 'neutral',
     sparkline: spark,
@@ -167,8 +171,16 @@ export function simulatedTick(markets: MarketPair[]): MarketPair[] {
     const volatility = pair.symbol === 'XAU/USD' ? 0.0007 : pair.symbol === 'USD/JPY' ? 0.00025 : 0.00022;
     const drift = (Math.random() - 0.47) * volatility;
     const nextPrice = pair.price * (1 + drift);
+    const spread = Math.abs((pair.ask ?? pair.price) - (pair.bid ?? pair.price));
     const nextChange = pair.change24h + drift * 100 * 0.7;
-    return { ...pair, price: nextPrice, change24h: Number(nextChange.toFixed(2)), sparkline: [...pair.sparkline.slice(1), nextPrice] };
+    return {
+      ...pair,
+      price: nextPrice,
+      bid: nextPrice - spread / 2,
+      ask: nextPrice + spread / 2,
+      change24h: Number(nextChange.toFixed(2)),
+      sparkline: [...pair.sparkline.slice(1), nextPrice],
+    };
   });
 }
 
