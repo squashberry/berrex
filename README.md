@@ -7,7 +7,8 @@ BerreX is an iOS-inspired forex market intelligence PWA: a market desk for price
 - Animated Telegram-style launch splash
 - Liquid-glass floating navigation
 - Home market desk with focus pair, watchlist and movers
-- Pair intelligence sheets with chart, high/low, bias, AI explanation and quick tools
+- Full market terminal with animated candlesticks, 1m/5m/15m/1h/4h/1D timeframes, SMA/EMA/RSI/MACD readouts, currency strength and session status
+- Pair intelligence with chart, high/low, bias, AI explanation and quick tools
 - Search / quick-find popup
 - Currency converter popup
 - Local price-alert list
@@ -25,6 +26,7 @@ BerreX now has provider adapters for:
 
 - Financial Modeling Prep (FMP): batch forex quotes, forex news and economic calendar.
 - Twelve Data: historical forex time series and currency conversion.
+- Optional Cloudflare Worker proxy: `worker/` keeps provider keys server-side and adds short shared caches.
 
 FMP documents real-time forex quotes, batch forex quotes, forex news and economic-calendar endpoints. Twelve Data documents forex time series and currency-conversion endpoints.
 
@@ -39,6 +41,7 @@ Copy `.env.example` to `.env.local` and set:
 ```text
 VITE_FMP_API_KEY=
 VITE_TWELVEDATA_API_KEY=
+VITE_MARKET_API_URL=
 VITE_AI_ENDPOINT=
 VITE_EXNESS_REFERRAL_URL=
 ```
@@ -50,6 +53,10 @@ If no provider key is configured, BerreX intentionally falls back to a local pre
 ## API usage
 
 The FMP allowance supplied for this project is limited, so BerreX avoids aggressive client polling. Provider data is loaded on startup; when no provider key is configured the local preview stream is used. A production backend should cache shared provider responses so multiple visitors do not multiply API calls.
+
+## Cloudflare data proxy
+
+For a public Pages deployment, deploy `worker/` as a separate Cloudflare Worker and add the secrets `FMP_API_KEY` and optionally `TWELVE_DATA_API_KEY`. Set the BerreX build variable `VITE_MARKET_API_URL` to the Worker URL. The browser then calls `/quotes`, `/news`, `/calendar`, `/candles` and `/convert` without exposing provider keys.
 
 ## Run locally
 
