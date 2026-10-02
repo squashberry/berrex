@@ -158,6 +158,12 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, onTrade, aiTex
           </div>
           <button className="terminal-alert-button" onClick={onAlert}><Icon name="bell" size={16} /> Alert</button>
         </div>
+        <div className="terminal-quote-strip">
+          <span>Bid <strong>{(pair.bid ?? pair.price).toFixed(precision)}</strong></span>
+          <span>Ask <strong>{(pair.ask ?? pair.price).toFixed(precision)}</strong></span>
+          <span>Spread <strong>{(((pair.ask ?? pair.price) - (pair.bid ?? pair.price)) / (pair.symbol.includes('JPY') ? 0.01 : pair.symbol.includes('XAU') ? 0.1 : 0.0001)).toFixed(1)} pips</strong></span>
+          <span>Quote <strong>{pair.timestamp ? new Date(pair.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Fallback'}</strong></span>
+        </div>
 
         <div className="terminal-timeframes">
           {TIMEFRAMES.map((item) => <button key={item} className={item === timeframe ? 'active' : ''} onClick={() => setTimeframe(item)}>{item}</button>)}
