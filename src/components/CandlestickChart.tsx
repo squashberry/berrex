@@ -5,9 +5,13 @@ type Props = {
   candles: Candle[];
   smaValues?: Array<number | null>;
   emaValues?: Array<number | null>;
+  bollingerUpper?: Array<number | null>;
+  bollingerLower?: Array<number | null>;
+  vwapValues?: Array<number | null>;
+  priceLevel?: number;
 };
 
-export function CandlestickChart({ candles, smaValues, emaValues }: Props) {
+export function CandlestickChart({ candles, smaValues, emaValues, bollingerUpper, bollingerLower, vwapValues, priceLevel }: Props) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const width = 900;
   const height = 340;
@@ -15,9 +19,12 @@ export function CandlestickChart({ candles, smaValues, emaValues }: Props) {
   const visible = candles.slice(-64);
   const visibleSma = smaValues?.slice(-64);
   const visibleEma = emaValues?.slice(-64);
+  const visibleBollingerUpper = bollingerUpper?.slice(-64);
+  const visibleBollingerLower = bollingerLower?.slice(-64);
+  const visibleVwap = vwapValues?.slice(-64);
 
   const domain = useMemo(() => {
-    const values = visible.flatMap((candle) => [candle.high, candle.low]);
+    const values = visible.flatMap((candle) => [candle.high, candle.low, ...(visibleBollingerUpper?.filter((v): v is number => v !== null) ?? []), ...(visibleBollingerLower?.filter((v): v is number => v !== null) ?? []), ...(visibleVwap?.filter((v): v is number => v !== null) ?? []), ...(priceLevel !== undefined ? [priceLevel] : [])]);
     const min = Math.min(...values);
     const max = Math.max(...values);
     const range = max - min || Math.max(0.0001, max * 0.001);
@@ -78,6 +85,10 @@ export function CandlestickChart({ candles, smaValues, emaValues }: Props) {
         })}
         {visibleSma && <path d={linePath(visibleSma)} className="indicator-line sma" />}
         {visibleEma && <path d={linePath(visibleEma)} className="indicator-line ema" />}
+        {visibleBollingerUpper && <path d={linePath(visibleBollingerUpper)} className="indicator-line bollinger" />}
+        {visibleBollingerLower && <path d={linePath(visibleBollingerLower)} className="indicator-line bollinger" />}
+        {visibleVwap && <path d={linePath(visibleVwap)} className="indicator-line vwap" />}
+        {priceLevel !== undefined && <g><line x1={pad.left} x2={width - pad.right} y1={y(priceLevel)} y2={y(priceLevel)} className="price-level-line" /><text x={width - pad.right - 2} y={y(priceLevel) - 4} textAnchor="end" className="price-level-label">{priceLevel.toFixed(priceLevel > 100 ? 2 : 5)}</text></g>}
       </svg>
       <div className="chart-scale">
         <span>{visible[0] ? new Date(visible[0].time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
