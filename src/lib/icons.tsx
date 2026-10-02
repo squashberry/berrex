@@ -3,7 +3,7 @@ import type { ReactNode, SVGProps } from 'react';
 export type IconName =
   | 'home' | 'chart' | 'news' | 'profile' | 'search' | 'bell' | 'chevron'
   | 'star' | 'sun' | 'moon' | 'arrow' | 'spark' | 'clock' | 'globe'
-  | 'shield' | 'external' | 'convert' | 'calendar';
+  | 'shield' | 'external' | 'convert' | 'calendar' | 'tools';
 
 export function Icon({ name, size = 20, strokeWidth = 1.9, fill = 'none', ...props }: SVGProps<SVGSVGElement> & { name: IconName; size?: number; strokeWidth?: number }) {
   const common = {
@@ -31,6 +31,7 @@ export function Icon({ name, size = 20, strokeWidth = 1.9, fill = 'none', ...pro
     external: <><path d="M14 5h5v5"/><path d="M10 14 19 5"/><path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></>,
     convert: <><path d="M7 7h11l-3-3"/><path d="M17 17H6l3 3"/><path d="M18 7a7 7 0 0 1 1.5 2.8M6 17a7 7 0 0 1-1.5-2.8"/></>,
     calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/><path d="M8 14h3M13 14h3M8 17h3"/></>,
+    tools: <><path d="M14.5 6.5 17 4l3 3-2.5 2.5"/><path d="m13 8-8.5 8.5a2.12 2.12 0 0 0 3 3L16 11"/><path d="M18 14a5 5 0 0 1-6.2 6.1"/></>,
   };
 
   return <svg {...common}>{paths[name]}</svg>;
