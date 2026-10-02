@@ -10,6 +10,8 @@ type Props = {
   markets: MarketPair[];
   onClose: () => void;
   onAlert: () => void;
+  aiText?: string;
+  aiLoading?: boolean;
 };
 
 const TIMEFRAMES: Timeframe[] = ['1m', '5m', '15m', '1h', '4h', '1D'];
@@ -53,7 +55,7 @@ function Sessions() {
   );
 }
 
-export function MarketTerminal({ pair, markets, onClose, onAlert }: Props) {
+export function MarketTerminal({ pair, markets, onClose, onAlert, aiText = '', aiLoading = false }: Props) {
   const [timeframe, setTimeframe] = useState<Timeframe>('1h');
   const [candles, setCandles] = useState<Candle[]>(() => previewCandles(pair));
   const [loading, setLoading] = useState(false);
@@ -104,7 +106,7 @@ export function MarketTerminal({ pair, markets, onClose, onAlert }: Props) {
             </div>
             <p>{pair.base} / {pair.quote} · {timeframe} candles · informational only</p>
           </div>
-          <button className="icon-button" onClick={onClose} aria-label="Close"><Icon name="chevron" size={18} /></button>
+          <button className="icon-button" onClick={onClose} aria-label="Close">×</button>
         </div>
 
         <div className="terminal-price-row">
@@ -137,6 +139,11 @@ export function MarketTerminal({ pair, markets, onClose, onAlert }: Props) {
           <div><span>High</span><strong>{last?.high.toFixed(precision) ?? '—'}</strong></div>
           <div><span>Low</span><strong>{last?.low.toFixed(precision) ?? '—'}</strong></div>
           <div><span>Close</span><strong>{last?.close.toFixed(precision) ?? '—'}</strong></div>
+        </div>
+
+        <div className="terminal-ai-panel">
+          <div className="section-kicker"><span className="spark-icon"><Icon name="spark" size={14} /></span> AI MARKET VIEW</div>
+          {aiLoading ? <div className="skeleton-lines"><span /><span /><span /></div> : <p>{aiText || 'Use price structure, momentum and the macro calendar together. BerreX provides informational analysis, not financial advice.'}</p>}
         </div>
 
         <div className="terminal-lower-grid">
