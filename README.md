@@ -14,6 +14,7 @@ BerreX is an iOS-inspired forex market intelligence PWA: a market desk for price
 - Local price-alert list
 - Economic calendar popup
 - Notifications center
+- Market Lab: screener, currency heatmap, derived sentiment, correlation matrix, risk/position sizing, pip tools, macro radar, news-to-price reaction cards, local portfolio exposure, trade journal, saved screens and market ideas
 - Newsroom with featured story + article reader
 - Light/dark appearance
 - Responsive desktop/mobile layout
@@ -26,7 +27,8 @@ BerreX now has provider adapters for:
 
 - Financial Modeling Prep (FMP): batch forex quotes, forex news and economic calendar.
 - Twelve Data: historical forex time series and currency conversion.
-- Optional Cloudflare Worker proxy: `worker/` keeps provider keys server-side and adds short shared caches.
+- Optional Cloudflare Worker proxy: worker/ keeps provider keys server-side and adds short shared caches.
+- Optional Supabase workspace/social layer: supabase/schema.sql provides RLS-protected workspace and community-idea tables.
 
 FMP documents real-time forex quotes, batch forex quotes, forex news and economic-calendar endpoints. Twelve Data documents forex time series and currency-conversion endpoints.
 
@@ -43,6 +45,9 @@ VITE_FMP_API_KEY=
 VITE_TWELVEDATA_API_KEY=
 VITE_MARKET_API_URL=
 VITE_AI_ENDPOINT=
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
+VITE_SOCIAL_API_URL=
 VITE_EXNESS_REFERRAL_URL=
 ```
 
@@ -52,7 +57,7 @@ If no provider key is configured, BerreX intentionally falls back to a local pre
 
 ## API usage
 
-The FMP allowance supplied for this project is limited, so BerreX avoids aggressive client polling. Provider data is loaded on startup; when no provider key is configured the local preview stream is used. A production backend should cache shared provider responses so multiple visitors do not multiply API calls.
+The FMP allowance supplied for this project is limited, so BerreX avoids aggressive client polling. Provider data is loaded on startup and refreshed periodically when a provider/proxy is configured; when no provider key is configured the local preview stream is used. A production backend should cache shared provider responses so multiple visitors do not multiply API calls.
 
 ## Cloudflare data proxy
 
@@ -92,3 +97,9 @@ Set `VITE_EXNESS_REFERRAL_URL` to your partner URL. The default is the public Ex
 ## Disclaimer
 
 BerreX is an informational market tool and referral surface, not a trade-execution platform or licensed financial adviser. Market data, news and AI-generated explanations can be incomplete or delayed.
+
+## Market Lab
+
+Market Lab consolidates the expanded product surface: live-feed-aware screening, currency heatmap, derived sentiment, correlation, risk and position sizing, pip tools, macro countdowns, news-to-price reaction, browser alerts, saved workspace, journal, market ideas, optional cloud sync, manual portfolio exposure, saved screens and source-status checks.
+
+Public production still requires a configured FMP/Twelve Data provider or VITE_MARKET_API_URL. Use the Cloudflare Worker for provider-key protection. Authenticated cloud workspace/community requires a dedicated BerreX Supabase project with VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.
