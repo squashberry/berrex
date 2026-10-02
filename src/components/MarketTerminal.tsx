@@ -124,7 +124,10 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, onTrade, aiTex
 
   return (
     <div className="terminal-backdrop" onClick={onClose}>{tradeFloating && <TradeActions pair={pair} onTrade={onTrade} compact />}
-      <section className="market-terminal" role="dialog" aria-modal="true" onScroll={(event) => setTradeFloating(event.currentTarget.scrollTop > 120)} onClick={(event) => event.stopPropagation()}>
+      <section className="market-terminal" role="dialog" aria-modal="true" onScroll={(event) => {
+        const scrollTop = event.currentTarget.scrollTop;
+        setTradeFloating((current) => current ? scrollTop > 180 : scrollTop > 300);
+      }} onClick={(event) => event.stopPropagation()}>
         <div className="terminal-handle" />
         <div className="terminal-header">
           <div>
@@ -152,6 +155,7 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, onTrade, aiTex
 
         <div className="terminal-chart-panel">
           <CandlestickChart candles={candles} smaValues={indicator === 'sma' ? smaValues : undefined} emaValues={indicator === 'ema' ? emaValues : undefined} />
+          {!tradeFloating && <TradeActions pair={pair} onTrade={onTrade} />}
           <div className="terminal-indicators">
             {(['sma', 'ema', 'rsi', 'macd'] as const).map((item) => <button key={item} className={indicator === item ? 'active' : ''} onClick={() => setIndicator(item)}>{item.toUpperCase()}</button>)}
           </div>
@@ -162,8 +166,6 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, onTrade, aiTex
             <div><span>Trend</span><strong>{pair.bias}</strong></div>
           </div>
         </div>
-
-        {!tradeFloating && <TradeActions pair={pair} onTrade={onTrade} />}
 
         <div className="terminal-stat-grid">
           <div><span>Open</span><strong>{last?.open.toFixed(precision) ?? '—'}</strong></div>
