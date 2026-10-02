@@ -239,9 +239,6 @@ export default function App() {
           <h1>Good morning.</h1>
           <p className="subtle">Your market desk, condensed.</p>
         </div>
-        <button className="icon-button" onClick={() => setOverlay('notifications')} aria-label="Notifications">
-          <Icon name="bell" size={20} /><span className="notification-dot" />
-        </button>
       </div>
 
       <GlassPanel className="hero-card">
