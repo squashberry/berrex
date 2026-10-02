@@ -37,6 +37,10 @@ function currencyScore(markets:MarketPair[],currency:string){
   const samples=markets.flatMap(p=>p.base===currency?[p.change24h]:p.quote===currency?[-p.change24h]:[]);
   return samples.length?samples.reduce((a,b)=>a+b,0)/samples.length:0;
 }
+function eventCountdown(event:EconomicEvent){
+  if(event.timestamp) return Math.max(0,event.timestamp-Date.now());
+  return todayCountdown(event.date);
+}
 function todayCountdown(dateText:string){
   const match=dateText.match(/Today\s*[·-]\s*(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
   if(!match)return null;
@@ -79,6 +83,11 @@ export function MarketLab({markets,events,news,favoriteSymbols,onToggleFavorite,
   const [cloudBusy,setCloudBusy]=useState(false);
   const [cloudError,setCloudError]=useState('');
   const [cloudIdeas,setCloudIdeas]=useState<Array<{id:string;user_id:string;symbol:string;title:string;bias:string;note:string;created_at:string}>>([]);
+  const [positions,setPositions]=useState<Array<{id:number;symbol:string;side:string;lots:number;entry:number}>>(()=>{
+    try{return JSON.parse(localStorage.getItem('berrex-positions-v1')||'[]')}catch{return []}
+  });
+  const [positionForm,setPositionForm]=useState({side:'BUY',lots:'0.10'});
+
 
   const screened=useMemo(()=>markets.filter(pair=>{
     const q=query.trim().toLowerCase();
@@ -111,6 +120,20 @@ export function MarketLab({markets,events,news,favoriteSymbols,onToggleFavorite,
     }
   };
   const saveJournal=()=>{if(!rp||!journalForm.note.trim())return;const next=[{id:Date.now(),symbol:rp.symbol,...journalForm},...journal];setJournal(next);localStorage.setItem(JOURNAL_KEY,JSON.stringify(next));setJournalForm(v=>({...v,result:'',note:v.note}))};
+  const savePosition=()=>{
+    if(!rp)return;
+    const lots=Number(positionForm.lots);
+    if(!Number.isFinite(lots)||lots<=0)return;
+    const next=[...positions,{id:Date.now(),symbol:rp.symbol,side:positionForm.side,lots,entry:rp.price}];
+    setPositions(next);
+    localStorage.setItem('berrex-positions-v1',JSON.stringify(next));
+  };
+  const removePosition=(id:number)=>{
+    const next=positions.filter(position=>position.id!==id);
+    setPositions(next);
+    localStorage.setItem('berrex-positions-v1',JSON.stringify(next));
+  };
+
   const saveIdea=async()=>{
     if(!rp||!ideaForm.title.trim())return;
     if(cloudSession){
@@ -193,7 +216,7 @@ export function MarketLab({markets,events,news,favoriteSymbols,onToggleFavorite,
     {tab==='macro'&&<>
       <div className="macro-command-bar"><button className="primary-button" onClick={onRefresh}><Icon name="calendar" size={15}/>Refresh data</button><span>{events.length} events · {news.length} stories</span></div>
       <div className="lab-section-heading"><div><span className="eyebrow">05 · MACRO</span><h2>Event radar</h2></div></div>
-      <div className="enhanced-event-list">{events.map(event=><button className="enhanced-event" key={event.event}><div><span>{event.currency} · {event.country}</span><strong>{event.event}</strong><small>{event.date}</small></div><div><b className={'impact '+event.impact.toLowerCase()}>{event.impact}</b><small>{duration(todayCountdown(event.date))}</small></div></button>)}</div>
+      <div className="enhanced-event-list">{events.map(event=><button className="enhanced-event" key={event.event}><div><span>{event.currency} · {event.country}</span><strong>{event.event}</strong><small>{event.date}</small></div><div><b className={'impact '+event.impact.toLowerCase()}>{event.impact}</b><small>{duration(eventCountdown(event))}</small></div></button>)}</div>
       <div className="lab-section-heading"><div><span className="eyebrow">06 · NEWS → PRICE</span><h2>Market reaction desk</h2></div></div>
       <div className="news-reaction-grid">{news.slice(0,8).map(item=>{const related=markets.filter(p=>p.base===item.currency||p.quote===item.currency).sort((a,b)=>Math.abs(b.change24h)-Math.abs(a.change24h)).slice(0,2);return <button className="news-reaction-card" key={item.title} onClick={()=>related[0]&&onOpenPair(related[0].symbol)}><div className="news-meta"><span>{item.currency}</span><span>{item.time}</span></div><strong>{item.title}</strong><p>{item.text||'Open the related market to inspect current price action.'}</p><div className="reaction-pairs">{related.map(p=><span key={p.symbol}>{p.symbol} <b className={p.change24h>=0?'positive':'negative'}>{p.change24h>=0?'+':''}{p.change24h.toFixed(2)}%</b></span>)}</div></button>})}</div>
       <div className="lab-section-heading"><div><span className="eyebrow">08 · ALERT ENGINE</span><h2>Alerts beyond price</h2></div></div>
@@ -227,7 +250,13 @@ export function MarketLab({markets,events,news,favoriteSymbols,onToggleFavorite,
       <div className="lab-section-heading"><div><span className="eyebrow">13 · ACCOUNT</span><h2>Cloud workspace</h2></div></div>
       <div className="cloud-card"><Icon name="profile" size={18}/><div><strong>Cloud sync</strong><p>Optional authenticated sync can be enabled with Supabase project variables. No service credentials belong in the browser.</p></div><span className={import.meta.env.VITE_SUPABASE_URL?'status-on':'status-off'}>{import.meta.env.VITE_SUPABASE_URL?'Configured':'Not configured'}</span></div>
       <div className="lab-section-heading"><div><span className="eyebrow">14 · PORTFOLIO</span><h2>Exposure snapshot</h2></div></div>
-      <div className="portfolio-grid">{markets.slice(0,4).map(pair=><button className="portfolio-card" key={pair.symbol} onClick={()=>onOpenPair(pair.symbol)}><span>{pair.symbol}</span><strong className={pair.change24h>=0?'positive':'negative'}>{pair.change24h>=0?'+':''}{pair.change24h.toFixed(2)}%</strong><small>Watched exposure</small></button>)}</div>
+      <div className="position-form">
+        <select value={rp?.symbol||''} onChange={e=>{setRiskPair(e.target.value);const p=markets.find(x=>x.symbol===e.target.value);if(p)setEntry(String(p.price))}}>{markets.map(p=><option key={p.symbol}>{p.symbol}</option>)}</select>
+        <select value={positionForm.side} onChange={e=>setPositionForm(v=>({...v,side:e.target.value}))}><option>BUY</option><option>SELL</option></select>
+        <input inputMode="decimal" value={positionForm.lots} onChange={e=>setPositionForm(v=>({...v,lots:e.target.value}))} placeholder="Lots"/>
+        <button className="primary-button" onClick={savePosition}>Add position</button>
+      </div>
+      <div className="portfolio-grid">{positions.length?positions.map(position=><button className="portfolio-card" key={position.id} onClick={()=>onOpenPair(position.symbol)}><span>{position.symbol} · {position.side}</span><strong>{position.lots.toFixed(2)} lots</strong><small>Entry {position.entry.toFixed(position.symbol.includes('JPY')||position.symbol.includes('XAU')?2:5)} · <em onClick={e=>{e.stopPropagation();removePosition(position.id)}}>Remove</em></small></button>):<div className="lab-note">No manual positions saved. Add one above to track local exposure; this does not connect to a broker account.</div>}</div>
       <div className="lab-section-heading"><div><span className="eyebrow">15 · EXECUTION CONTEXT</span><h2>Broker handoff</h2></div></div>
       <div className="lab-note-card wide-note"><Icon name="shield" size={16}/><strong>Risk notice</strong><p>BerreX does not place orders. Buy/Sell opens the configured Exness URL. Provider quotes can differ from broker execution.</p></div>
       <div className="lab-section-heading"><div><span className="eyebrow">16 · SAVED SCREENS</span><h2>Shortcuts</h2></div></div>
