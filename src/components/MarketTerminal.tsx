@@ -40,6 +40,9 @@ function tradeDirectionForPair(pair: MarketPair): 'BUY' | 'SELL' {
 
 function TradeActions({ pair, onTrade, compact = false }: { pair: MarketPair; onTrade: (side: 'sell' | 'buy') => void; compact?: boolean }) {
   const direction = tradeDirectionForPair(pair);
+  const precision = pair.symbol === 'USD/JPY' || pair.symbol === 'XAU/USD' ? 2 : 5;
+  const sellPrice = (pair.bid ?? pair.price).toFixed(precision);
+  const buyPrice = (pair.ask ?? pair.price).toFixed(precision);
   return (
     <div className={compact ? 'terminal-trade-floating' : 'terminal-trade-inline'}>
       <div className={direction === 'BUY' ? 'trade-signal buy' : 'trade-signal sell'}>
@@ -49,10 +52,10 @@ function TradeActions({ pair, onTrade, compact = false }: { pair: MarketPair; on
       </div>
       <div className="terminal-trade-buttons">
         <button className="trade-button sell" onClick={() => onTrade('sell')} aria-label={pair.symbol + ' Sell via Exness'}>
-          <span>Sell</span><small>Exness</small>
+          <span>Sell</span><strong>{sellPrice}</strong><small>Exness</small>
         </button>
         <button className="trade-button buy" onClick={() => onTrade('buy')} aria-label={pair.symbol + ' Buy via Exness'}>
-          <span>Buy</span><small>Exness</small>
+          <span>Buy</span><strong>{buyPrice}</strong><small>Exness</small>
         </button>
       </div>
     </div>
