@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Candle, MarketPair, Timeframe } from '../types';
 import { fetchCandleSeries } from '../services/market';
-import { ema, macd, previewCandles, rsi, sma } from '../lib/technical';
+import { adx, atr, bollinger, ema, macd, previewCandles, rsi, sma, stochastic, vwap } from '../lib/technical';
 import { CandlestickChart } from './CandlestickChart';
 import { Icon } from '../lib/icons';
 
@@ -90,8 +90,10 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, onTrade, aiTex
   const [timeframe, setTimeframe] = useState<Timeframe>('1h');
   const [candles, setCandles] = useState<Candle[]>(() => previewCandles(pair));
   const [loading, setLoading] = useState(false);
-  const [indicator, setIndicator] = useState<'sma' | 'ema' | 'rsi' | 'macd'>('sma');
+  const [indicator, setIndicator] = useState<'sma' | 'ema' | 'rsi' | 'macd' | 'bollinger' | 'vwap'>('sma');
   const [tradeFloating, setTradeFloating] = useState(false);
+  const [priceLevel, setPriceLevel] = useState<number | undefined>();
+  const [levelInput, setLevelInput] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -114,6 +116,11 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, onTrade, aiTex
   const emaValues = useMemo(() => ema(closes, 9), [closes]);
   const rsiValue = useMemo(() => rsi(closes), [closes]);
   const macdValue = useMemo(() => macd(closes), [closes]);
+  const bollingerValues = useMemo(() => bollinger(closes), [closes]);
+  const vwapValues = useMemo(() => vwap(candles), [candles]);
+  const atrValue = useMemo(() => atr(candles), [candles]);
+  const stochasticValue = useMemo(() => stochastic(candles), [candles]);
+  const adxValue = useMemo(() => adx(candles), [candles]);
 
   const currencyList = Array.from(new Set(markets.flatMap((market) => [market.base, market.quote])));
   const strength = currencyList
@@ -157,17 +164,26 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, onTrade, aiTex
         </div>
 
         <div className="terminal-chart-panel">
-          <CandlestickChart candles={candles} smaValues={indicator === 'sma' ? smaValues : undefined} emaValues={indicator === 'ema' ? emaValues : undefined} />
+          <CandlestickChart candles={candles} smaValues={indicator === 'sma' ? smaValues : undefined} emaValues={indicator === 'ema' ? emaValues : undefined} bollingerUpper={indicator === 'bollinger' ? bollingerValues.map(v => v.upper) : undefined} bollingerLower={indicator === 'bollinger' ? bollingerValues.map(v => v.lower) : undefined} vwapValues={indicator === 'vwap' ? vwapValues : undefined} priceLevel={priceLevel} />
           {!tradeFloating && <TradeActions pair={pair} onTrade={onTrade} />}
           <div className="terminal-indicators">
-            {(['sma', 'ema', 'rsi', 'macd'] as const).map((item) => <button key={item} className={indicator === item ? 'active' : ''} onClick={() => setIndicator(item)}>{item.toUpperCase()}</button>)}
+            {(['sma', 'ema', 'rsi', 'macd', 'bollinger', 'vwap'] as const).map((item) => <button key={item} className={indicator === item ? 'active' : ''} onClick={() => setIndicator(item)}>{item === 'bollinger' ? 'BB' : item.toUpperCase()}</button>)}
           </div>
-          <div className="terminal-indicator-readout">
+          <div className="terminal-indicator-readout terminal-indicator-readout-wide">
             <div><span>RSI 14</span><strong>{rsiValue.toFixed(1)}</strong></div>
             <div><span>MACD</span><strong>{macdValue.histogram >= 0 ? '+' : ''}{macdValue.histogram.toFixed(5)}</strong></div>
             <div><span>EMA 9</span><strong>{(emaValues[emaValues.length - 1] ?? pair.price).toFixed(precision)}</strong></div>
+            <div><span>ATR 14</span><strong>{atrValue.toFixed(precision)}</strong></div>
+            <div><span>Stoch</span><strong>{stochasticValue.toFixed(1)}</strong></div>
+            <div><span>ADX</span><strong>{adxValue.toFixed(1)}</strong></div>
             <div><span>Trend</span><strong>{pair.bias}</strong></div>
           </div>
+        </div>
+        <div className="terminal-chart-tools">
+          <span className="chart-tools-label">LEVEL</span>
+          <input value={levelInput} onChange={(e) => setLevelInput(e.target.value)} inputMode="decimal" placeholder="Support / resistance" />
+          <button className="secondary-button" onClick={() => { const value = Number(levelInput); if (Number.isFinite(value) && value > 0) setPriceLevel(value); }}>Mark</button>
+          <button className="icon-button" onClick={() => setPriceLevel(undefined)} aria-label="Clear chart level">×</button>
         </div>
 
         <div className="terminal-stat-grid">
