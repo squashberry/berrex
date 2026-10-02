@@ -4,7 +4,7 @@ import { aggregateCandles } from '../lib/technical';
 const FMP_BASE = 'https://financialmodelingprep.com/stable';
 const FMP_KEY = import.meta.env.VITE_FMP_API_KEY as string | undefined;
 const TWELVE_KEY = import.meta.env.VITE_TWELVEDATA_API_KEY as string | undefined;
-const MARKET_API_URL = (import.meta.env.VITE_MARKET_API_URL as string | undefined)?.replace(/\\/$/, '');
+const MARKET_API_URL = (import.meta.env.VITE_MARKET_API_URL as string | undefined)?.replace(/\/$/, '');
 
 function INITIAL_SYMBOLS() {
   return ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'XAUUSD'];
