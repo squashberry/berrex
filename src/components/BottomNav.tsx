@@ -1,7 +1,7 @@
 import { Icon, type IconName } from '../lib/icons';
 
 type Item = {
-  id: 'home' | 'markets' | 'news' | 'profile';
+  id: 'home' | 'markets' | 'news' | 'lab' | 'profile';
   label: string;
   icon: IconName;
 };
@@ -10,6 +10,7 @@ const items: Item[] = [
   { id: 'home', label: 'Home', icon: 'home' },
   { id: 'markets', label: 'Markets', icon: 'chart' },
   { id: 'news', label: 'News', icon: 'news' },
+  { id: 'lab', label: 'Lab', icon: 'spark' },
   { id: 'profile', label: 'You', icon: 'profile' },
 ];
 
