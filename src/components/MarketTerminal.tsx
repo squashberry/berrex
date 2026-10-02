@@ -10,6 +10,7 @@ type Props = {
   markets: MarketPair[];
   onClose: () => void;
   onAlert: () => void;
+  onTrade: (side: 'sell' | 'buy') => void;
   aiText?: string;
   aiLoading?: boolean;
 };
@@ -29,6 +30,33 @@ function strengthForMarkets(markets: MarketPair[], currency: string) {
 function sessionState(hour: number, start: number, end: number) {
   if (start < end) return hour >= start && hour < end;
   return hour >= start || hour < end;
+}
+
+function tradeDirectionForPair(pair: MarketPair): 'BUY' | 'SELL' {
+  if (pair.bias === 'bearish') return 'SELL';
+  if (pair.bias === 'bullish') return 'BUY';
+  return pair.change24h >= 0 ? 'BUY' : 'SELL';
+}
+
+function TradeActions({ pair, onTrade, compact = false }: { pair: MarketPair; onTrade: (side: 'sell' | 'buy') => void; compact?: boolean }) {
+  const direction = tradeDirectionForPair(pair);
+  return (
+    <div className={compact ? 'terminal-trade-floating' : 'terminal-trade-inline'}>
+      <div className={direction === 'BUY' ? 'trade-signal buy' : 'trade-signal sell'}>
+        <span className="trade-signal-dot" />
+        <span className="trade-signal-label">SIGNAL</span>
+        <strong>STRONG {direction}</strong>
+      </div>
+      <div className="terminal-trade-buttons">
+        <button className="trade-button sell" onClick={() => onTrade('sell')} aria-label={pair.symbol + ' Sell via Exness'}>
+          <span>Sell</span><small>Exness</small>
+        </button>
+        <button className="trade-button buy" onClick={() => onTrade('buy')} aria-label={pair.symbol + ' Buy via Exness'}>
+          <span>Buy</span><small>Exness</small>
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function Sessions() {
@@ -55,11 +83,12 @@ function Sessions() {
   );
 }
 
-export function MarketTerminal({ pair, markets, onClose, onAlert, aiText = '', aiLoading = false }: Props) {
+export function MarketTerminal({ pair, markets, onClose, onAlert, onTrade, aiText = '', aiLoading = false }: Props) {
   const [timeframe, setTimeframe] = useState<Timeframe>('1h');
   const [candles, setCandles] = useState<Candle[]>(() => previewCandles(pair));
   const [loading, setLoading] = useState(false);
   const [indicator, setIndicator] = useState<'sma' | 'ema' | 'rsi' | 'macd'>('sma');
+  const [tradeFloating, setTradeFloating] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,8 +123,8 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, aiText = '', a
   const precision = pair.symbol === 'USD/JPY' || pair.symbol === 'XAU/USD' ? 2 : 5;
 
   return (
-    <div className="terminal-backdrop" onClick={onClose}>
-      <section className="market-terminal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+    <div className="terminal-backdrop" onClick={onClose}>{tradeFloating && <TradeActions pair={pair} onTrade={onTrade} compact />}
+      <section className="market-terminal" role="dialog" aria-modal="true" onScroll={(event) => setTradeFloating(event.currentTarget.scrollTop > 120)} role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
         <div className="terminal-handle" />
         <div className="terminal-header">
           <div>
@@ -116,6 +145,8 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, aiText = '', a
           </div>
           <button className="terminal-alert-button" onClick={onAlert}><Icon name="bell" size={16} /> Alert</button>
         </div>
+
+        <TradeActions pair={pair} onTrade={onTrade} />
 
         <div className="terminal-timeframes">
           {TIMEFRAMES.map((item) => <button key={item} className={item === timeframe ? 'active' : ''} onClick={() => setTimeframe(item)}>{item}</button>)}
