@@ -93,6 +93,7 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, onTrade, aiTex
   const [indicator, setIndicator] = useState<'sma' | 'ema' | 'rsi' | 'macd' | 'bollinger' | 'vwap'>('sma');
   const [tradeFloating, setTradeFloating] = useState(false);
   const [priceLevel, setPriceLevel] = useState<number | undefined>();
+  const [fullscreen, setFullscreen] = useState(false);
   const [levelInput, setLevelInput] = useState('');
 
   useEffect(() => {
@@ -134,7 +135,7 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, onTrade, aiTex
 
   return (
     <div className="terminal-backdrop" onClick={onClose}>{tradeFloating && <TradeActions pair={pair} onTrade={onTrade} compact />}
-      <section className="market-terminal" role="dialog" aria-modal="true" onScroll={(event) => {
+      <section className={fullscreen ? "market-terminal terminal-fullscreen" : "market-terminal"} role="dialog" aria-modal="true" onScroll={(event) => {
         const scrollTop = event.currentTarget.scrollTop;
         setTradeFloating((current) => current ? scrollTop > 180 : scrollTop > 300);
       }} onClick={(event) => event.stopPropagation()}>
@@ -148,7 +149,7 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, onTrade, aiTex
             </div>
             <p>{pair.base} / {pair.quote} · {timeframe} candles · informational only</p>
           </div>
-          <button className="icon-button" onClick={onClose} aria-label="Close">×</button>
+          <div className="terminal-header-actions"><button className="icon-button" onClick={() => setFullscreen(current => !current)} aria-label={fullscreen ? 'Exit full screen' : 'Full screen'}>{fullscreen ? '↙' : '⛶'}</button><button className="icon-button" onClick={onClose} aria-label="Close">×</button></div>
         </div>
 
         <div className="terminal-price-row">
