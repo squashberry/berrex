@@ -8,7 +8,7 @@ import { MarketSparkline } from './components/MarketSparkline';
 import { MarketLab } from './components/MarketLab';
 import { Icon } from './lib/icons';
 import { DEFAULT_SELECTED, EVENTS, INITIAL_MARKETS, NEWS } from './data/market';
-import { convertCurrency, fetchEconomicCalendar, fetchLiveMarkets, fetchLiveNews, fetchTwelveSeries, simulatedTick } from './services/market';
+import { convertCurrency, connectMarketWebSocket, fetchEconomicCalendar, fetchLiveMarkets, fetchLiveNews, fetchTwelveSeries, simulatedTick } from './services/market';
 import { requestAiInsight } from './services/ai';
 import type { EconomicEvent, MarketPair, NewsItem, PriceAlert, PriceAlertCondition } from './types';
 
@@ -109,7 +109,13 @@ export default function App() {
     if (savedAlerts) setAlerts(JSON.parse(savedAlerts));
     const savedPriceAlerts = window.localStorage.getItem('berrex-price-alerts');
     if (savedPriceAlerts) setPriceAlerts(JSON.parse(savedPriceAlerts));
+    const savedFavorites = window.localStorage.getItem('berrex-favorites');
+    if (savedFavorites) setFavoriteSymbols(JSON.parse(savedFavorites));
   }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem('berrex-favorites', JSON.stringify(favoriteSymbols));
+  }, [favoriteSymbols]);
 
   useEffect(() => {
     window.localStorage.setItem('berrex-theme', dark ? 'dark' : 'light');
@@ -165,6 +171,20 @@ export default function App() {
     };
     void load();
 
+    const disconnectWebSocket = connectMarketWebSocket((payload) => {
+      if (!payload || typeof payload !== 'object') return;
+      const row = payload as { symbol?: string; price?: number; bid?: number; ask?: number; change24h?: number; changePercentage?: number; timestamp?: number };
+      if (!row.symbol || !Number.isFinite(Number(row.price))) return;
+      const normalized = row.symbol.toUpperCase().replace('/', '');
+      setMarkets(current => current.map(pair => {
+        if (pair.symbol.replace('/', '').toUpperCase() !== normalized) return pair;
+        const price = Number(row.price);
+        const change = Number(row.change24h ?? row.changePercentage ?? pair.change24h);
+        return { ...pair, price, bid: Number(row.bid ?? pair.bid ?? price), ask: Number(row.ask ?? pair.ask ?? price), change24h: Number(change.toFixed(2)), timestamp: Number(row.timestamp ?? Date.now() / 1000), sparkline: [...pair.sparkline.slice(1), price] };
+      }));
+      setLastSync(Number(row.timestamp ?? Date.now() / 1000));
+    });
+
     const id = window.setInterval(() => {
       if (!API_ENABLED) {
         setMarkets((current) => simulatedTick(current));
@@ -190,6 +210,7 @@ export default function App() {
 
     return () => {
       cancelled = true;
+      disconnectWebSocket();
       window.clearInterval(id);
       window.clearInterval(slowId);
     };
