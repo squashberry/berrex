@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { BottomNav } from './components/BottomNav';
 import { GlassPanel } from './components/GlassPanel';
 import { AIInsight } from './components/AIInsight';
@@ -91,6 +91,7 @@ export default function App() {
   const [lastSync, setLastSync] = useState<number | undefined>();
   const [marketFilter, setMarketFilter] = useState<'All' | 'Majors' | 'Metals' | 'Favorites'>('All');
   const time = useClock();
+  const finishSplash = useCallback(() => setBooted(true), []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
@@ -195,7 +196,7 @@ export default function App() {
     }
   };
 
-  if (!booted) return <Splash onDone={() => setBooted(true)} />;
+  if (!booted) return <Splash onDone={finishSplash} />;
 
   const renderHome = () => (
     <>
