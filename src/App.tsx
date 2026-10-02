@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { BottomNav } from './components/BottomNav';
 import { GlassPanel } from './components/GlassPanel';
 import { AIInsight } from './components/AIInsight';
@@ -54,7 +54,7 @@ function Splash({ onDone }: { onDone: () => void }) {
   );
 }
 
-function Modal({ title, eyebrow, children, onClose, wide = false }: { title: string; eyebrow?: string; children: React.ReactNode; onClose: () => void; wide?: boolean }) {
+function Modal({ title, eyebrow, children, onClose, wide = false }: { title: string; eyebrow?: string; children: ReactNode; onClose: () => void; wide?: boolean }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className={`modal-card ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
@@ -271,7 +271,7 @@ export default function App() {
   const renderNews = () => (
     <>
       <div className="page-header"><span className="eyebrow">NEWSROOM</span><h1>The market, explained.</h1><p className="subtle">Forex headlines, macro context and event risk in one place.</p></div>
-      <GlassPanel className="news-feature" onClick={() => setSelectedNews(news[0] ?? null)}><div className="feature-glow" /><span className="live-pill">FEATURED STORY</span><span className="feature-tag">{news[0]?.currency ?? 'FX'}</span><h2>{news[0]?.title ?? 'Forex news'}</h2><p>{news[0]?.text ?? 'Latest market coverage.'}</p><div className="feature-foot"><span>{news[0]?.source}</span><span>Read story →</span></div></GlassPanel>
+      <button className="news-feature" onClick={() => setSelectedNews(news[0] ?? null)}><div className="feature-glow" /><span className="live-pill">FEATURED STORY</span><span className="feature-tag">{news[0]?.currency ?? 'FX'}</span><h2>{news[0]?.title ?? 'Forex news'}</h2><p>{news[0]?.text ?? 'Latest market coverage.'}</p><div className="feature-foot"><span>{news[0]?.source}</span><span>Read story →</span></div></button>
       <div className="calendar-strip"><button className="calendar-card interactive-card" onClick={() => setOverlay('calendar')}><div className="calendar-icon"><Icon name="clock" size={18} /></div><div><span>Upcoming macro</span><strong>{EVENTS[0].event}</strong><small>{EVENTS[0].date}</small></div><span className="impact high">High</span></button></div>
       <div className="news-list">{news.map((item) => <button className="news-card interactive-card" key={item.title} onClick={() => setSelectedNews(item)}><div className="news-meta"><span>{item.currency}</span><span>{item.time}</span></div><h3>{item.title}</h3><p>{item.text}</p><div className="news-foot"><span>{item.source}</span><span className={`impact ${item.impact.toLowerCase()}`}>{item.impact}</span></div></button>)}</div>
     </>
