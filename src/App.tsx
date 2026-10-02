@@ -95,8 +95,17 @@ export default function App() {
   const [loadingData, setLoadingData] = useState(false);
   const [lastSync, setLastSync] = useState<number | undefined>();
   const [marketFilter, setMarketFilter] = useState<'All' | 'Majors' | 'Metals' | 'Favorites'>('All');
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [showFloatingTools, setShowFloatingTools] = useState(false);
   const time = useClock();
   const finishSplash = useCallback(() => setBooted(true), []);
+
+  useEffect(() => {
+    const onScroll = () => setShowFloatingTools(window.scrollY > 120);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
@@ -245,17 +254,10 @@ export default function App() {
         </button>
       </div>
 
-      <div className="quick-grid">
-        <button className="quick-tile blue" onClick={() => setOverlay('converter')}><Icon name="convert" size={19} /><span>Convert</span><small>FX calculator</small></button>
-        <button className="quick-tile" onClick={() => setOverlay('calendar')}><Icon name="calendar" size={19} /><span>Calendar</span><small>Macro events</small></button>
-        <button className="quick-tile" onClick={() => setOverlay('alert')}><Icon name="bell" size={19} /><span>Alerts</span><small>{alerts.length || 'Set one'}</small></button>
-        <button className="quick-tile" onClick={() => { setActiveTab('markets'); setOverlay(null); }}><Icon name="search" size={19} /><span>Explore</span><small>Find a pair</small></button>
-      </div>
-
       <GlassPanel className="hero-card">
         <div className="hero-topline">
-          <span className="live-pill"><span className="live-dot" /> {API_ENABLED ? 'Live provider' : 'Preview stream'}</span>
-          <span className="timestamp">{lastSync ? formatAge(lastSync) : time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          <span className="live-pill"><span className="live-dot" /> {API_ENABLED ? 'Live market feed' : 'Preview feed'}</span>
+          <span className="timestamp">{lastSync ? formatAge(lastSync) : API_ENABLED ? 'Connecting…' : 'Simulated market'}</span>
         </div>
         <div className="hero-symbol">
           <div><span className="section-kicker">FOCUS PAIR</span><h2>{selected.symbol}</h2></div>
@@ -329,7 +331,7 @@ export default function App() {
       <div className="app-glow glow-one" /><div className="app-glow glow-two" />
       <header className="topbar">
         <button className="brand-mark-button" onClick={() => setActiveTab('home')} aria-label="Go home"><div className="brand-mark"><span>Berre</span><b>X</b></div></button>
-        <div className="topbar-actions"><button className="top-control" onClick={() => setOverlay('search')} aria-label="Search"><Icon name="search" size={18} /></button><button className="top-control" onClick={() => setDark((current) => !current)} aria-label="Toggle appearance"><Icon name={dark ? 'moon' : 'sun'} size={18} /></button><button className="top-control" onClick={() => setOverlay('notifications')} aria-label="Notifications"><Icon name="bell" size={18} /><span className="notification-dot" /></button></div>
+        <div className="topbar-actions"><button className={showFloatingTools ? 'top-tools-button top-tools-hidden' : 'top-tools-button'} onClick={() => setToolsOpen((open) => !open)} aria-label="Open tools"><Icon name="tools" size={17} /><span>Tools</span></button><button className="top-control" onClick={() => setOverlay('search')} aria-label="Search"><Icon name="search" size={18} /></button><button className="top-control" onClick={() => setDark((current) => !current)} aria-label="Toggle appearance"><Icon name={dark ? 'moon' : 'sun'} size={18} /></button><button className="top-control" onClick={() => setOverlay('notifications')} aria-label="Notifications"><Icon name="bell" size={18} /><span className="notification-dot" /></button></div>
       </header>
       <main className="content">
         {activeTab === 'home' && renderHome()}
@@ -338,6 +340,18 @@ export default function App() {
         {activeTab === 'profile' && renderProfile()}
       </main>
       <BottomNav active={activeTab} onChange={setActiveTab} />
+
+      <div className={showFloatingTools ? 'tools-dock visible' : 'tools-dock'}>
+        <button className={toolsOpen ? 'tools-trigger active' : 'tools-trigger'} onClick={() => setToolsOpen((open) => !open)} aria-label="Open BerreX tools">
+          <Icon name="tools" size={18} /><span>Tools</span><Icon name="chevron" size={14} />
+        </button>
+        {toolsOpen && <div className="tools-panel">
+          <button onClick={() => { setOverlay('converter'); setToolsOpen(false); }}><span><Icon name="convert" size={17} /></span><strong>Convert</strong><small>FX calculator</small></button>
+          <button onClick={() => { setOverlay('calendar'); setToolsOpen(false); }}><span><Icon name="calendar" size={17} /></span><strong>Calendar</strong><small>Macro events</small></button>
+          <button onClick={() => { setOverlay('alert'); setAlertTarget(formatPrice(selected)); setToolsOpen(false); }}><span><Icon name="bell" size={17} /></span><strong>Alerts</strong><small>{alerts.length || 'Set one'}</small></button>
+          <button onClick={() => { setActiveTab('markets'); setToolsOpen(false); }}><span><Icon name="search" size={17} /></span><strong>Explore</strong><small>Find a pair</small></button>
+        </div>}
+      </div>
 
       {sheetOpen && selected && <MarketTerminal pair={selected} markets={markets} aiText={aiText} aiLoading={aiLoading} onClose={() => setSheetOpen(false)} onAlert={() => { setAlertTarget(formatPrice(selected)); setOverlay('alert'); setSheetOpen(false); }} />}
 
