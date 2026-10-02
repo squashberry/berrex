@@ -131,6 +131,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
       actual: row.actual,
       estimate: row.estimate,
       previous: row.previous,
+      timestamp: row.date ? new Date(row.date).getTime() : undefined,
     }));
     return json(mapped, 200, origin, env);
   }
