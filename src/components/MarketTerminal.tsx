@@ -165,6 +165,8 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, onTrade, aiTex
           </div>
         </div>
 
+        {!tradeFloating && <TradeActions pair={pair} onTrade={onTrade} />}
+
         <div className="terminal-stat-grid">
           <div><span>Open</span><strong>{last?.open.toFixed(precision) ?? '—'}</strong></div>
           <div><span>High</span><strong>{last?.high.toFixed(precision) ?? '—'}</strong></div>
