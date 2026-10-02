@@ -1,4 +1,4 @@
-import type { MarketPair, NewsItem } from '../types';
+import type { EconomicEvent, MarketPair, NewsItem } from '../types';
 
 export const INITIAL_MARKETS: MarketPair[] = [
   { symbol: 'EUR/USD', base: 'EUR', quote: 'USD', price: 1.17482, change24h: 0.24, bias: 'bullish', sparkline: [1.1712,1.1721,1.1718,1.1730,1.1726,1.1740,1.1734,1.1749,1.1742,1.1748] },
@@ -10,10 +10,17 @@ export const INITIAL_MARKETS: MarketPair[] = [
 ];
 
 export const NEWS: NewsItem[] = [
-  { title: 'U.S. labor data keeps rate-cut expectations in focus', source: 'BerreX Macro Desk', time: '18 min', impact: 'High', currency: 'USD' },
-  { title: 'Euro area inflation preview: what markets are watching', source: 'Global Wire', time: '44 min', impact: 'Medium', currency: 'EUR' },
-  { title: 'BoJ commentary keeps yen volatility elevated', source: 'Market Brief', time: '1 h', impact: 'Medium', currency: 'JPY' },
-  { title: 'Gold tracks softer dollar ahead of U.S. data', source: 'Commodities Desk', time: '2 h', impact: 'Low', currency: 'XAU' },
+  { title: 'U.S. labor data keeps rate-cut expectations in focus', source: 'BerreX Macro Desk', time: '18 min', impact: 'High', currency: 'USD', text: 'Markets are watching incoming U.S. labor data for fresh clues on the path of interest rates and the dollar.' },
+  { title: 'Euro area inflation preview: what markets are watching', source: 'Global Wire', time: '44 min', impact: 'Medium', currency: 'EUR', text: 'Inflation expectations remain a key input for the euro as traders assess the European Central Bank outlook.' },
+  { title: 'BoJ commentary keeps yen volatility elevated', source: 'Market Brief', time: '1 h', impact: 'Medium', currency: 'JPY', text: 'Recent policy commentary is keeping attention on yen sensitivity to rates and intervention expectations.' },
+  { title: 'Gold tracks softer dollar ahead of U.S. data', source: 'Commodities Desk', time: '2 h', impact: 'Low', currency: 'XAU', text: 'Gold is being watched alongside the dollar and upcoming macro releases.' },
+];
+
+export const EVENTS: EconomicEvent[] = [
+  { event: 'U.S. Nonfarm Payrolls', country: 'United States', currency: 'USD', date: 'Today · 12:30 UTC', impact: 'High', estimate: '—', previous: '—' },
+  { event: 'Euro Area CPI', country: 'Euro Area', currency: 'EUR', date: 'Today · 09:00 UTC', impact: 'High', estimate: '—', previous: '—' },
+  { event: 'BoJ Policy Commentary', country: 'Japan', currency: 'JPY', date: 'Tomorrow · 02:00 UTC', impact: 'Medium', estimate: '—', previous: '—' },
+  { event: 'UK Services PMI', country: 'United Kingdom', currency: 'GBP', date: 'Tomorrow · 08:30 UTC', impact: 'Medium', estimate: '—', previous: '—' },
 ];
 
 export const DEFAULT_SELECTED = INITIAL_MARKETS[0].symbol;
