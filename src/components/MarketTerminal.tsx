@@ -146,8 +146,6 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, onTrade, aiTex
           <button className="terminal-alert-button" onClick={onAlert}><Icon name="bell" size={16} /> Alert</button>
         </div>
 
-        <TradeActions pair={pair} onTrade={onTrade} />
-
         {!tradeFloating && <TradeActions pair={pair} onTrade={onTrade} />}
 
         <div className="terminal-timeframes">
