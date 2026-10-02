@@ -160,10 +160,35 @@ export default function App() {
       setLoadingData(false);
     };
     void load();
+
     const id = window.setInterval(() => {
-      if (!API_ENABLED) setMarkets((current) => simulatedTick(current));
-    }, 6500);
-    return () => { cancelled = true; window.clearInterval(id); };
+      if (!API_ENABLED) {
+        setMarkets((current) => simulatedTick(current));
+        return;
+      }
+      void fetchLiveMarkets(INITIAL_MARKETS)
+        .then((fresh) => {
+          if (cancelled) return;
+          setMarkets(fresh);
+          setLastSync(Date.now() / 1000);
+        })
+        .catch(() => undefined);
+    }, 15000);
+
+    const slowId = window.setInterval(() => {
+      if (!API_ENABLED) return;
+      void Promise.allSettled([fetchLiveNews(), fetchEconomicCalendar()]).then(([newsResult, calendarResult]) => {
+        if (cancelled) return;
+        if (newsResult.status === 'fulfilled' && newsResult.value.length) setNews(newsResult.value);
+        if (calendarResult.status === 'fulfilled' && calendarResult.value.length) setEvents(calendarResult.value);
+      });
+    }, 120000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+      window.clearInterval(slowId);
+    };
   }, [booted]);
 
   const selected = markets.find((pair) => pair.symbol === selectedSymbol) ?? markets[0];
