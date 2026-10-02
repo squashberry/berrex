@@ -1,4 +1,4 @@
-const CACHE = 'berrex-shell-v3';
+const CACHE = 'berrex-shell-v4';
 const BASE = new URL('./', self.registration.scope).pathname;
 const SHELL = [
   BASE,
