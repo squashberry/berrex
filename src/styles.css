@@ -145,3 +145,31 @@ button{transition:transform .2s ease,opacity .2s ease,background .2s ease}button
 .tools-panel button strong{align-self:end;font-size:11px}.tools-panel button small{margin-top:2px;color:var(--muted);font-size:9px}
 @keyframes tools-panel-in{from{opacity:0;transform:translateY(-7px) scale(.96);transform-origin:top right}to{opacity:1;transform:none}}
 @media (max-width:640px){.tools-dock{right:12px;top:82px}.top-tools-button{padding:0 11px}.top-tools-button span{display:none}.tools-panel{width:200px}}
+
+
+/* Terminal trade action rail */
+.terminal-trade-inline{display:grid;gap:8px;margin:10px 0 4px;padding:10px 0 2px;animation:trade-rail-in .45s cubic-bezier(.2,.85,.18,1) both}
+.trade-signal{display:flex;align-items:center;justify-content:center;gap:7px;min-height:20px;font-size:9px;letter-spacing:.12em;text-transform:uppercase}
+.trade-signal-label{color:var(--muted);font-weight:800}
+.trade-signal strong{font-size:10px;letter-spacing:.09em}
+.trade-signal.buy strong{color:var(--green)}
+.trade-signal.sell strong{color:var(--red)}
+.trade-signal-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 4px color-mix(in srgb,var(--muted) 10%,transparent)}
+.trade-signal.buy .trade-signal-dot{background:var(--green);box-shadow:0 0 0 4px rgba(22,166,110,.1)}
+.trade-signal.sell .trade-signal-dot{background:var(--red);box-shadow:0 0 0 4px rgba(224,75,75,.1)}
+.terminal-trade-buttons{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.trade-button{min-height:56px;border:1px solid transparent;border-radius:18px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 17px;cursor:pointer;box-shadow:0 13px 28px rgba(10,20,36,.16);transition:transform .2s ease,box-shadow .25s ease,filter .25s ease}
+.trade-button span{font-size:15px;font-weight:850;letter-spacing:-.02em}
+.trade-button small{font-size:9px;font-weight:800;opacity:.72;letter-spacing:.08em;text-transform:uppercase}
+.trade-button:hover{transform:translateY(-2px);filter:saturate(1.08)}
+.trade-button:active{transform:translateY(0) scale(.985)}
+.trade-button.sell{background:linear-gradient(135deg,#e85b5b,#c93646);border-color:rgba(255,255,255,.16);box-shadow:0 14px 32px rgba(201,54,70,.26)}
+.trade-button.buy{background:linear-gradient(135deg,#28b87b,#15955f);border-color:rgba(255,255,255,.16);box-shadow:0 14px 32px rgba(21,149,95,.24)}
+.terminal-trade-floating{position:absolute;top:14px;left:50%;width:min(540px,calc(100% - 28px));z-index:4;transform:translateX(-50%) translateY(-8px);display:grid;gap:6px;padding:8px;border:1px solid var(--line);border-radius:22px;background:color-mix(in srgb,var(--surface-solid) 92%,transparent);backdrop-filter:blur(26px) saturate(175%);-webkit-backdrop-filter:blur(26px) saturate(175%);box-shadow:0 20px 60px rgba(8,20,38,.24);animation:trade-float-in .38s cubic-bezier(.2,.85,.18,1) both}
+.terminal-trade-floating .trade-signal{min-height:17px}
+.terminal-trade-floating .trade-button{min-height:45px;border-radius:15px;padding:0 14px}
+.terminal-trade-floating .trade-button span{font-size:13px}
+.terminal-trade-floating .trade-button small{font-size:8px}
+@keyframes trade-rail-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes trade-float-in{from{opacity:0;transform:translate(-50%,-20px) scale(.96)}to{opacity:1;transform:translate(-50%,-8px) scale(1)}}
+@media (max-width:640px){.terminal-trade-inline{margin-top:8px}.trade-button{min-height:52px;padding-inline:14px}.terminal-trade-floating{top:9px;width:calc(100% - 18px);padding:7px;border-radius:20px}.terminal-trade-floating .terminal-trade-buttons{gap:7px}}
