@@ -1,8 +1,10 @@
-import type { EconomicEvent, MarketPair, NewsItem } from '../types';
+import type { Candle, EconomicEvent, MarketPair, NewsItem, Timeframe } from '../types';
+import { aggregateCandles } from '../lib/technical';
 
 const FMP_BASE = 'https://financialmodelingprep.com/stable';
 const FMP_KEY = import.meta.env.VITE_FMP_API_KEY as string | undefined;
 const TWELVE_KEY = import.meta.env.VITE_TWELVEDATA_API_KEY as string | undefined;
+const MARKET_API_URL = (import.meta.env.VITE_MARKET_API_URL as string | undefined)?.replace(/\\/$/, '');
 
 function INITIAL_SYMBOLS() {
   return ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'XAUUSD'];
@@ -25,6 +27,13 @@ function pairFromFmp(row: any, fallback: MarketPair): MarketPair {
 }
 
 export async function fetchLiveMarkets(fallback: MarketPair[]): Promise<MarketPair[]> {
+  if (MARKET_API_URL) {
+    const response = await fetch(MARKET_API_URL + '/quotes');
+    if (!response.ok) throw new Error('BerreX market proxy failed: ' + response.status);
+    const rows = await response.json() as any[];
+    const bySymbol = new Map(rows.map((row) => [String(row.symbol).toUpperCase(), row]));
+    return fallback.map((pair) => pairFromFmp(bySymbol.get(pair.symbol.replace('/', '')) ?? {}, pair));
+  }
   if (!FMP_KEY) return fallback;
   const response = await fetch(`${FMP_BASE}/batch-forex-quotes?apikey=${encodeURIComponent(FMP_KEY)}`);
   if (!response.ok) throw new Error(`FMP market request failed: ${response.status}`);
@@ -34,6 +43,11 @@ export async function fetchLiveMarkets(fallback: MarketPair[]): Promise<MarketPa
 }
 
 export async function fetchLiveNews(): Promise<NewsItem[]> {
+  if (MARKET_API_URL) {
+    const response = await fetch(MARKET_API_URL + '/news');
+    if (!response.ok) throw new Error('BerreX news proxy failed: ' + response.status);
+    return await response.json() as NewsItem[];
+  }
   if (!FMP_KEY) return [];
   const response = await fetch(`${FMP_BASE}/news/forex-latest?page=0&limit=20&apikey=${encodeURIComponent(FMP_KEY)}`);
   if (!response.ok) throw new Error(`FMP news request failed: ${response.status}`);
@@ -64,6 +78,66 @@ export async function fetchEconomicCalendar(): Promise<EconomicEvent[]> {
     impact: (String(row.impact ?? 'Medium').toLowerCase().includes('high') ? 'High' : String(row.impact ?? '').toLowerCase().includes('low') ? 'Low' : 'Medium') as EconomicEvent['impact'],
     actual: row.actual, estimate: row.estimate, previous: row.previous,
   }));
+}
+
+export async function fetchCandleSeries(symbol: string, timeframe: Timeframe): Promise<Candle[]> {
+  const normalized = symbol.replace('/', '');
+  if (MARKET_API_URL) {
+    const response = await fetch(MARKET_API_URL + '/candles?symbol=' + encodeURIComponent(normalized) + '&timeframe=' + encodeURIComponent(timeframe));
+    if (!response.ok) throw new Error('BerreX candle proxy failed: ' + response.status);
+    return await response.json() as Candle[];
+  }
+
+  if (FMP_KEY) {
+    const directInterval: Record<Timeframe, string> = {
+      '1m': '1min',
+      '5m': '5min',
+      '15m': '5min',
+      '1h': '1hour',
+      '4h': '1hour',
+      '1D': '1day',
+    };
+    const interval = directInterval[timeframe];
+    const endpoint = timeframe === '1D'
+      ? FMP_BASE + '/historical-price-eod/full?symbol=' + encodeURIComponent(normalized) + '&apikey=' + encodeURIComponent(FMP_KEY)
+      : FMP_BASE + '/historical-chart/' + interval + '?symbol=' + encodeURIComponent(normalized) + '&apikey=' + encodeURIComponent(FMP_KEY);
+    const response = await fetch(endpoint);
+    if (!response.ok) throw new Error('FMP candles request failed: ' + response.status);
+    const rows = await response.json() as any[];
+    const candles = rows.map((row) => ({
+      time: new Date(row.date ?? row.timestamp ?? Date.now()).getTime(),
+      open: Number(row.open),
+      high: Number(row.high),
+      low: Number(row.low),
+      close: Number(row.close),
+    })).filter((row) => [row.time, row.open, row.high, row.low, row.close].every(Number.isFinite)).reverse();
+    if (timeframe === '15m') return aggregateCandles(candles, 15 * 60 * 1000).slice(-160);
+    if (timeframe === '4h') return aggregateCandles(candles, 4 * 60 * 60 * 1000).slice(-160);
+    return candles.slice(-160);
+  }
+
+  if (TWELVE_KEY) {
+    const intervalMap: Record<Timeframe, string> = {
+      '1m': '1min',
+      '5m': '5min',
+      '15m': '15min',
+      '1h': '1h',
+      '4h': '4h',
+      '1D': '1day',
+    };
+    const response = await fetch('https://api.twelvedata.com/time_series?symbol=' + encodeURIComponent(normalized) + '&interval=' + intervalMap[timeframe] + '&outputsize=160&apikey=' + encodeURIComponent(TWELVE_KEY));
+    if (!response.ok) throw new Error('Twelve Data candles request failed: ' + response.status);
+    const body = await response.json() as { values?: Array<{ datetime: string; open: string; high: string; low: string; close: string }> };
+    return (body.values ?? []).map((row) => ({
+      time: new Date(row.datetime).getTime(),
+      open: Number(row.open),
+      high: Number(row.high),
+      low: Number(row.low),
+      close: Number(row.close),
+    })).filter((row) => [row.time, row.open, row.high, row.low, row.close].every(Number.isFinite)).reverse().slice(-160);
+  }
+
+  return [];
 }
 
 export async function fetchTwelveSeries(symbol: string): Promise<number[]> {
