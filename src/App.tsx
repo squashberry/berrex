@@ -82,7 +82,8 @@ export default function App() {
   const [dark, setDark] = useState(false);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
-  const [alerts, setAlerts] = useState<string[]>([]);\n  const [events, setEvents] = useState<EconomicEvent[]>(EVENTS);
+  const [alerts, setAlerts] = useState<string[]>([]);
+  const [events, setEvents] = useState<EconomicEvent[]>(EVENTS);
   const [converterAmount, setConverterAmount] = useState('100');
   const [converterPair, setConverterPair] = useState('EUR/USD');
   const [converted, setConverted] = useState<number | null>(null);
