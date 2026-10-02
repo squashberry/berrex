@@ -54,4 +54,5 @@ export type EconomicEvent = {
   actual?: string;
   estimate?: string;
   previous?: string;
+  timestamp?: number;
 };
