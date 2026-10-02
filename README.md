@@ -1,19 +1,55 @@
 # BerreX
 
-BerreX is an iOS-inspired forex market intelligence PWA.
+BerreX is an iOS-inspired forex market intelligence PWA: a market desk for prices, charts, macro events, news, watchlists, alerts, conversion tools and AI explanations.
 
-The first build focuses on the product shell and interaction model:
+## Current product surface
 
-- Liquid Glass-inspired floating navigation
-- Live-preview market ticker with simulated streaming ticks
-- Watchlist
-- Pair detail view with chart and indicator summaries
-- AI market insight surface
-- Economic/news cards
+- Animated Telegram-style launch splash
+- Liquid-glass floating navigation
+- Home market desk with focus pair, watchlist and movers
+- Pair intelligence sheets with chart, high/low, bias, AI explanation and quick tools
+- Search / quick-find popup
+- Currency converter popup
+- Local price-alert list
+- Economic calendar popup
+- Notifications center
+- Newsroom with featured story + article reader
 - Light/dark appearance
+- Responsive desktop/mobile layout
 - Installable PWA shell
 - GitHub Pages deployment
-- Safe frontend configuration points for a future market-data backend and AI endpoint
+
+## Market-data providers
+
+BerreX now has provider adapters for:
+
+- Financial Modeling Prep (FMP): batch forex quotes, forex news and economic calendar.
+- Twelve Data: historical forex time series and currency conversion.
+
+FMP documents real-time forex quotes, batch forex quotes, forex news and economic-calendar endpoints. Twelve Data documents forex time series and currency-conversion endpoints.
+
+Provider references:
+- https://site.financialmodelingprep.com/developer/docs
+- https://twelvedata.com/docs
+
+### Configure locally
+
+Copy `.env.example` to `.env.local` and set:
+
+```text
+VITE_FMP_API_KEY=
+VITE_TWELVEDATA_API_KEY=
+VITE_AI_ENDPOINT=
+VITE_EXNESS_REFERRAL_URL=
+```
+
+**Security:** Vite `VITE_*` variables are embedded into the browser bundle. Do not treat them as server-side secrets. For a public production deployment, put FMP/Twelve Data requests behind a Cloudflare Worker or another backend and expose only your own API endpoint to the browser.
+
+If no provider key is configured, BerreX intentionally falls back to a local preview stream so the UI remains usable.
+
+## API usage
+
+The FMP allowance supplied for this project is limited, so BerreX avoids aggressive client polling. Provider data is loaded on startup; when no provider key is configured the local preview stream is used. A production backend should cache shared provider responses so multiple visitors do not multiply API calls.
 
 ## Run locally
 
@@ -28,54 +64,24 @@ npm run dev
 npm run build
 ```
 
-## Live data
-
-The current UI uses a local simulated tick stream so the public demo works without exposing a market-data API key in the browser.
-
-For production, connect the frontend to a backend or WebSocket provider through the service layer in `src/services/market.ts`.
-
-## AI
-
-The AI insight panel supports a backend endpoint through:
-
-```text
-VITE_AI_ENDPOINT
-```
-
-Do not put private provider API keys in frontend environment variables. Keep those keys server-side in a Cloudflare Worker or another backend.
-
-## Exness referral
-
-Set:
-
-```text
-VITE_EXNESS_REFERRAL_URL
-```
-
-to your partner URL. Until then the CTA falls back to the public Exness site.
-
 ## GitHub Pages
 
-The repository includes a GitHub Actions workflow at:
-
-```text
-.github/workflows/deploy.yml
-```
-
-After Pages is enabled for GitHub Actions, pushes to `main` build and deploy the PWA automatically.
+The repository includes `.github/workflows/deploy.yml`.
 
 Repository:
-
 https://github.com/squashberry/berrex
+
+Planned public site:
+https://squashberry.github.io/berrex/
 
 ## Design direction
 
-The interface follows current Apple platform conventions as visual inspiration: floating navigation, translucent materials, rounded sheets, strong hierarchy, and restrained use of glass effects.
+The interface is inspired by modern Apple platform conventions: floating navigation, translucent materials, rounded sheets, strong hierarchy and restrained glass effects. It is an independent BerreX design, not an Apple clone.
 
-Primary references are collected in `DESIGN_REFERENCE.md`.
+## Exness referral
 
-BerreX is an independent product and is not affiliated with Apple.
+Set `VITE_EXNESS_REFERRAL_URL` to your partner URL. The default is the public Exness website.
 
 ## Disclaimer
 
-BerreX provides market information and educational analysis surfaces. It is not a licensed financial adviser or a trade-execution platform. Market data and AI-generated analysis can be incomplete or delayed.
+BerreX is an informational market tool and referral surface, not a trade-execution platform or licensed financial adviser. Market data, news and AI-generated explanations can be incomplete or delayed.
