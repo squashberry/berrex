@@ -15,7 +15,7 @@ type Tab = 'home' | 'markets' | 'news' | 'profile';
 type Overlay = 'notifications' | 'converter' | 'alert' | 'calendar' | 'search' | null;
 
 const EXNESS_URL = import.meta.env.VITE_EXNESS_REFERRAL_URL || 'https://www.exness.com/';
-const API_ENABLED = Boolean(import.meta.env.VITE_FMP_API_KEY || import.meta.env.VITE_TWELVEDATA_API_KEY);
+const API_ENABLED = Boolean(import.meta.env.VITE_MARKET_API_URL || import.meta.env.VITE_FMP_API_KEY || import.meta.env.VITE_TWELVEDATA_API_KEY);
 
 function formatPrice(pair: MarketPair) {
   return pair.price.toFixed(pair.symbol === 'USD/JPY' || pair.symbol === 'XAU/USD' ? 2 : 5);
