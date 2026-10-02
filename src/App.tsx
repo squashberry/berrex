@@ -85,6 +85,7 @@ export default function App() {
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
   const [alerts, setAlerts] = useState<string[]>([]);
   const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>([]);
+  const [alertNotice, setAlertNotice] = useState<string | null>(null);
   const [alertCondition, setAlertCondition] = useState<PriceAlertCondition>('above');
   const [alertTarget, setAlertTarget] = useState('');
   const [events, setEvents] = useState<EconomicEvent[]>(EVENTS);
@@ -121,6 +122,21 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem('berrex-price-alerts', JSON.stringify(priceAlerts));
   }, [priceAlerts]);
+
+  useEffect(() => {
+    for (const alert of priceAlerts) {
+      const pair = markets.find((item) => item.symbol === alert.symbol);
+      if (!pair) continue;
+      const hit = alert.condition === 'above' ? pair.price >= alert.target : pair.price <= alert.target;
+      const key = 'berrex-alert-hit:' + alert.symbol + ':' + alert.condition + ':' + alert.target;
+      if (hit && !window.sessionStorage.getItem(key)) {
+        window.sessionStorage.setItem(key, '1');
+        setAlertNotice(alert.symbol + ' ' + (alert.condition === 'above' ? 'crossed above' : 'crossed below') + ' ' + alert.target);
+        window.setTimeout(() => setAlertNotice(null), 5000);
+        break;
+      }
+    }
+  }, [markets, priceAlerts]);
 
   useEffect(() => {
     if (!booted) return;
@@ -323,7 +339,7 @@ export default function App() {
       </main>
       <BottomNav active={activeTab} onChange={setActiveTab} />
 
-      {sheetOpen && selected && <MarketTerminal pair={selected} markets={markets} onClose={() => setSheetOpen(false)} onAlert={() => { setAlertTarget(formatPrice(selected)); setOverlay('alert'); setSheetOpen(false); }} />}
+      {sheetOpen && selected && <MarketTerminal pair={selected} markets={markets} aiText={aiText} aiLoading={aiLoading} onClose={() => setSheetOpen(false)} onAlert={() => { setAlertTarget(formatPrice(selected)); setOverlay('alert'); setSheetOpen(false); }} />}
 
       {overlay === 'notifications' && <Modal title="Notifications" eyebrow="YOUR DESK" onClose={() => setOverlay(null)}><div className="notification-list"><button onClick={() => { setOverlay('alert'); }}><span className="notification-icon"><Icon name="bell" size={17} /></span><span><strong>Price alerts</strong><small>{alerts.length ? `${alerts.length} market alert${alerts.length === 1 ? '' : 's'} saved.` : 'No alerts yet. Add one from a pair.'}</small></span><Icon name="chevron" size={16} /></button><button onClick={() => { setOverlay('calendar'); }}><span className="notification-icon"><Icon name="calendar" size={17} /></span><span><strong>Macro calendar</strong><small>{events.length} upcoming events in the current preview.</small></span><Icon name="chevron" size={16} /></button><button onClick={() => { setActiveTab('news'); setOverlay(null); }}><span className="notification-icon"><Icon name="news" size={17} /></span><span><strong>Newsroom</strong><small>{news.length} stories available.</small></span><Icon name="chevron" size={16} /></button></div></Modal>}
 
@@ -334,6 +350,8 @@ export default function App() {
       {overlay === 'calendar' && <Modal title="Economic calendar" eyebrow="MACRO EVENTS" wide onClose={() => setOverlay(null)}><div className="event-list">{events.map((event: EconomicEvent) => <button className="event-row" key={event.event}><div><span>{event.currency} · {event.country}</span><strong>{event.event}</strong><small>{event.date}</small></div><span className={`impact ${event.impact.toLowerCase()}`}>{event.impact}</span></button>)}</div><p className="modal-note">For production, this panel is wired to FMP's economic calendar endpoint when the FMP key is configured.</p></Modal>}
 
       {overlay === 'search' && <Modal title="Search BerreX" eyebrow="QUICK FIND" onClose={() => setOverlay(null)}><div className="search-modal"><div className="search-panel"><Icon name="search" size={18} /><input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Pair, currency or keyword…" /></div><div className="search-results">{markets.filter((p) => !search || p.symbol.toLowerCase().includes(search.toLowerCase()) || p.base.toLowerCase().includes(search.toLowerCase()) || p.quote.toLowerCase().includes(search.toLowerCase())).map((pair) => <button key={pair.symbol} onClick={() => { setOverlay(null); void openPair(pair.symbol); }}><span>{pair.symbol}</span><strong>{formatPrice(pair)}</strong></button>)}</div></div></Modal>}
+
+      {alertNotice && <div className="alert-toast" role="status"><span className="alert-toast-dot" /><div><strong>Price alert triggered</strong><small>{alertNotice}</small></div><button onClick={() => setAlertNotice(null)}>×</button></div>}
 
       {selectedNews && <Modal title={selectedNews.title} eyebrow={selectedNews.currency + ' · ' + selectedNews.source} onClose={() => setSelectedNews(null)}><article className="article-reader"><div className="article-cover"><span>BERREX</span><b>{selectedNews.currency}</b></div><p className="article-lead">{selectedNews.text || 'Market coverage from the BerreX newsroom.'}</p><p>Read the original publication for the full story and source context. BerreX surfaces headlines for market awareness and does not independently verify every publisher claim.</p>{selectedNews.url && <button className="primary-button full" onClick={() => window.open(selectedNews.url, '_blank', 'noopener,noreferrer')}>Open original article <Icon name="external" size={15} /></button>}</article></Modal>}
     </div>
