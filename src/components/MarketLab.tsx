@@ -102,9 +102,48 @@ export function MarketLab({markets,events,news,favoriteSymbols,onToggleFavorite,
   const perUnitPip=rp?.symbol.includes('JPY')?0.01/Math.max(entryValue,1):rp?.symbol.includes('XAU')?0.1:0.0001;
   const units=perUnitPip&&pips?riskAmount/(pips*perUnitPip):0, lots=units/100000;
 
-  const saveWorkspace=()=>{const value=workspaceName.trim()||'My BerreX Desk';setWorkspaceName(value);localStorage.setItem(WORKSPACE_KEY,value)};
+  const saveWorkspace=async()=>{
+    const value=workspaceName.trim()||'My BerreX Desk';
+    setWorkspaceName(value);
+    localStorage.setItem(WORKSPACE_KEY,value);
+    if(cloudSession){
+      try{await saveCloudWorkspace(value,{favorites:favoriteSymbols,journal,ideas});}catch(error){setCloudError(error instanceof Error?error.message:'Cloud sync failed.')}
+    }
+  };
   const saveJournal=()=>{if(!rp||!journalForm.note.trim())return;const next=[{id:Date.now(),symbol:rp.symbol,...journalForm},...journal];setJournal(next);localStorage.setItem(JOURNAL_KEY,JSON.stringify(next));setJournalForm(v=>({...v,result:'',note:v.note}))};
-  const saveIdea=()=>{if(!rp||!ideaForm.title.trim())return;const next=[{id:Date.now(),symbol:rp.symbol,...ideaForm},...ideas];setIdeas(next);localStorage.setItem(IDEAS_KEY,JSON.stringify(next));setIdeaForm({title:'',bias:'Bullish',note:''})};
+  const saveIdea=async()=>{
+    if(!rp||!ideaForm.title.trim())return;
+    if(cloudSession){
+      try{
+        await publishCommunityIdea({symbol:rp.symbol,...ideaForm});
+        setIdeaForm({title:'',bias:'Bullish',note:''});
+        const remote=await loadCommunityIdeas();
+        setCloudIdeas(remote);
+      }catch(error){setCloudError(error instanceof Error?error.message:'Community publish failed.')}
+      return;
+    }
+    const next=[{id:Date.now(),symbol:rp.symbol,...ideaForm},...ideas];
+    setIdeas(next);
+    localStorage.setItem(IDEAS_KEY,JSON.stringify(next));
+    setIdeaForm({title:'',bias:'Bullish',note:''});
+  };
+  const handleCloudAuth=async()=>{
+    if(!cloudConfigured)return;
+    setCloudBusy(true);setCloudError('');
+    try{
+      const session=cloudMode==='signin'?await signIn(cloudEmail,cloudPassword):await signUp(cloudEmail,cloudPassword);
+      if(session.access_token)setCloudSession(session);
+      else setCloudError('Check your email if confirmation is required, then sign in.');
+    }catch(error){setCloudError(error instanceof Error?error.message:'Authentication failed.')}finally{setCloudBusy(false)}
+  };
+  const handleCloudLogout=()=>{signOut();setCloudSession(null);setCloudIdeas([])};
+  useEffect(()=>{
+    if(!cloudSession)return;
+    void Promise.all([loadWorkspace(),loadCommunityIdeas()]).then(([workspace,remoteIdeas])=>{
+      if(workspace?.workspace_name){setWorkspaceName(workspace.workspace_name);localStorage.setItem(WORKSPACE_KEY,workspace.workspace_name)}
+      if(Array.isArray(remoteIdeas))setCloudIdeas(remoteIdeas);
+    }).catch(error=>setCloudError(error instanceof Error?error.message:'Cloud load failed.'));
+  },[cloudSession]);
 
   const tabs=[['overview','Overview'],['screener','Screener'],['risk','Risk'],['macro','Macro'],['workspace','Workspace']] as const;
 
