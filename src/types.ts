@@ -1,5 +1,24 @@
 export type MarketBias = 'bullish' | 'neutral' | 'bearish';
 
+export type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1D';
+
+export type Candle = {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+};
+
+export type PriceAlertCondition = 'above' | 'below';
+
+export type PriceAlert = {
+  symbol: string;
+  condition: PriceAlertCondition;
+  target: number;
+  createdAt: number;
+};
+
 export type MarketPair = {
   symbol: string;
   base: string;
