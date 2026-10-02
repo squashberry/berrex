@@ -50,7 +50,23 @@ export async function fetchLiveNews(): Promise<NewsItem[]> {
   }));
 }
 
-export async function fetchEconomicCalendar(): Promise<EconomicEvent[]> {\n  if (!FMP_KEY) return [];\n  const from = new Date();\n  const to = new Date(Date.now() + 7 * 86400000);\n  const iso = (value: Date) => value.toISOString().slice(0, 10);\n  const response = await fetch(\`\${FMP_BASE}/economic-calendar?from=\${iso(from)}&to=\${iso(to)}&apikey=\${encodeURIComponent(FMP_KEY)}\`);\n  if (!response.ok) throw new Error(\`FMP calendar request failed: \${response.status}\`);\n  const rows = await response.json() as any[];\n  return rows.slice(0, 30).map((row) => ({\n    event: row.event ?? row.name ?? 'Economic event', country: row.country ?? '', currency: row.currency ?? '',\n    date: row.date ? new Date(row.date).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Upcoming',\n    impact: (String(row.impact ?? 'Medium').toLowerCase().includes('high') ? 'High' : String(row.impact ?? '').toLowerCase().includes('low') ? 'Low' : 'Medium') as EconomicEvent['impact'],\n    actual: row.actual, estimate: row.estimate, previous: row.previous,\n  }));\n}\n\nexport async function fetchTwelveSeries(symbol: string): Promise<number[]> {
+export async function fetchEconomicCalendar(): Promise<EconomicEvent[]> {
+  if (!FMP_KEY) return [];
+  const from = new Date();
+  const to = new Date(Date.now() + 7 * 86400000);
+  const iso = (value: Date) => value.toISOString().slice(0, 10);
+  const response = await fetch(`\${FMP_BASE}/economic-calendar?from=\${iso(from)}&to=\${iso(to)}&apikey=\${encodeURIComponent(FMP_KEY)}`);
+  if (!response.ok) throw new Error(`FMP calendar request failed: \${response.status}`);
+  const rows = await response.json() as any[];
+  return rows.slice(0, 30).map((row) => ({
+    event: row.event ?? row.name ?? 'Economic event', country: row.country ?? '', currency: row.currency ?? '',
+    date: row.date ? new Date(row.date).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Upcoming',
+    impact: (String(row.impact ?? 'Medium').toLowerCase().includes('high') ? 'High' : String(row.impact ?? '').toLowerCase().includes('low') ? 'Low' : 'Medium') as EconomicEvent['impact'],
+    actual: row.actual, estimate: row.estimate, previous: row.previous,
+  }));
+}
+
+export async function fetchTwelveSeries(symbol: string): Promise<number[]> {
   if (!TWELVE_KEY) return [];
   const response = await fetch(`https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=1h&outputsize=48&apikey=${encodeURIComponent(TWELVE_KEY)}`);
   if (!response.ok) throw new Error(`Twelve Data request failed: ${response.status}`);
