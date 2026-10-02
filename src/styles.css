@@ -284,3 +284,18 @@ button{transition:transform .2s ease,opacity .2s ease,background .2s ease}button
 .source-grid span,.source-grid strong{display:block}.source-grid span{color:var(--muted);font-size:9px}.source-grid strong{margin-top:6px;font-size:10px}
 @media (max-width:900px){.currency-heatmap{grid-template-columns:repeat(4,1fr)}.lab-grid-4{grid-template-columns:repeat(2,1fr)}.alert-feature-grid,.portfolio-grid,.shortcut-grid,.source-grid{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:640px){.lab-hero-grid,.lab-grid-3,.lab-grid-4,.news-reaction-grid,.alert-feature-grid{grid-template-columns:1fr}.lab-filter-card,.risk-inputs{grid-template-columns:1fr 1fr}.screener-row{grid-template-columns:1fr auto auto}.screener-row>span:nth-child(4){display:none}.workspace-card,.broker-card{display:grid}.workspace-edit{display:grid;min-width:0}.journal-form,.idea-form{grid-template-columns:1fr}.portfolio-grid,.shortcut-grid,.source-grid{grid-template-columns:1fr 1fr}.pip-card{grid-template-columns:1fr auto}.lab-section-heading{align-items:flex-start;flex-direction:column;gap:5px}}
+
+.indicator-line.bollinger{stroke:var(--accent);stroke-dasharray:5 4;opacity:.62}
+.indicator-line.vwap{stroke:#9a6bd6;stroke-dasharray:3 4}
+.price-level-line{stroke:var(--red);stroke-width:1.5;stroke-dasharray:7 5;opacity:.9}
+.price-level-label{fill:var(--red);font-size:10px;font-weight:800}
+.terminal-indicator-readout-wide{grid-template-columns:repeat(7,1fr)}
+.terminal-chart-tools{display:flex;align-items:center;gap:8px;margin-top:9px;padding:8px 10px;border:1px solid var(--line);background:var(--surface-soft);border-radius:17px}
+.chart-tools-label{font-size:9px;font-weight:850;color:var(--muted);letter-spacing:.1em}
+.terminal-chart-tools input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:12px;padding:9px 10px;outline:none;font-size:11px}
+.terminal-chart-tools .secondary-button{padding:9px 12px;min-height:36px}
+.terminal-quote-strip{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.terminal-quote-strip span{padding:6px 8px;border:1px solid var(--line);background:var(--surface-soft);border-radius:999px;color:var(--muted);font-size:8px;font-weight:780}
+.terminal-quote-strip strong{color:var(--text);font-variant-numeric:tabular-nums}
+@media (max-width:900px){.terminal-indicator-readout-wide{grid-template-columns:repeat(4,1fr)}}
+@media (max-width:640px){.terminal-indicator-readout-wide{grid-template-columns:repeat(2,1fr)}.terminal-chart-tools{flex-wrap:wrap}.chart-tools-label{width:100%}}
