@@ -148,13 +148,14 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, onTrade, aiTex
 
         <TradeActions pair={pair} onTrade={onTrade} />
 
+        <TradeActions pair={pair} onTrade={onTrade} />
+
         <div className="terminal-timeframes">
           {TIMEFRAMES.map((item) => <button key={item} className={item === timeframe ? 'active' : ''} onClick={() => setTimeframe(item)}>{item}</button>)}
         </div>
 
         <div className="terminal-chart-panel">
           <CandlestickChart candles={candles} smaValues={indicator === 'sma' ? smaValues : undefined} emaValues={indicator === 'ema' ? emaValues : undefined} />
-          {!tradeFloating && <TradeActions pair={pair} onTrade={onTrade} />}
           <div className="terminal-indicators">
             {(['sma', 'ema', 'rsi', 'macd'] as const).map((item) => <button key={item} className={indicator === item ? 'active' : ''} onClick={() => setIndicator(item)}>{item.toUpperCase()}</button>)}
           </div>
