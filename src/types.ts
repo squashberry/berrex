@@ -24,6 +24,8 @@ export type MarketPair = {
   base: string;
   quote: string;
   price: number;
+  bid?: number;
+  ask?: number;
   change24h: number;
   bias: MarketBias;
   sparkline: number[];
