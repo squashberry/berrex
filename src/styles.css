@@ -309,3 +309,8 @@ button{transition:transform .2s ease,opacity .2s ease,background .2s ease}button
 .cloud-auth-status{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;margin-top:13px}
 .cloud-auth-status strong{font-size:11px}.cloud-auth-status small{color:var(--muted);font-size:9px}
 @media (max-width:640px){.cloud-auth-form{grid-template-columns:1fr}.cloud-auth-status{grid-template-columns:auto 1fr}.cloud-auth-status small{grid-column:1/-1}}
+
+.position-form{display:grid;grid-template-columns:1.4fr .8fr .8fr auto;gap:7px}
+.position-form select,.position-form input{min-height:42px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--text);padding:10px 12px;outline:none}
+.portfolio-card em{font-style:normal;color:var(--red);cursor:pointer}
+@media (max-width:640px){.position-form{grid-template-columns:1fr 1fr}.position-form .primary-button{grid-column:1/-1}}
