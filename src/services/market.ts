@@ -81,6 +81,7 @@ export async function fetchEconomicCalendar(): Promise<EconomicEvent[]> {
     date: row.date ? new Date(row.date).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Upcoming',
     impact: (String(row.impact ?? 'Medium').toLowerCase().includes('high') ? 'High' : String(row.impact ?? '').toLowerCase().includes('low') ? 'Low' : 'Medium') as EconomicEvent['impact'],
     actual: row.actual, estimate: row.estimate, previous: row.previous,
+    timestamp: row.date ? new Date(row.date).getTime() : undefined,
   }));
 }
 
