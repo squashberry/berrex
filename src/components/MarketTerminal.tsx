@@ -124,7 +124,7 @@ export function MarketTerminal({ pair, markets, onClose, onAlert, onTrade, aiTex
 
   return (
     <div className="terminal-backdrop" onClick={onClose}>{tradeFloating && <TradeActions pair={pair} onTrade={onTrade} compact />}
-      <section className="market-terminal" role="dialog" aria-modal="true" onScroll={(event) => setTradeFloating(event.currentTarget.scrollTop > 120)} role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+      <section className="market-terminal" role="dialog" aria-modal="true" onScroll={(event) => setTradeFloating(event.currentTarget.scrollTop > 120)} onClick={(event) => event.stopPropagation()}>
         <div className="terminal-handle" />
         <div className="terminal-header">
           <div>
