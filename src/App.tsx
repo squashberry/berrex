@@ -3,12 +3,13 @@ import { BottomNav } from './components/BottomNav';
 import { GlassPanel } from './components/GlassPanel';
 import { AIInsight } from './components/AIInsight';
 import { PairCard } from './components/PairCard';
+import { MarketTerminal } from './components/MarketTerminal';
 import { MarketSparkline } from './components/MarketSparkline';
 import { Icon } from './lib/icons';
 import { DEFAULT_SELECTED, EVENTS, INITIAL_MARKETS, NEWS } from './data/market';
 import { convertCurrency, fetchEconomicCalendar, fetchLiveMarkets, fetchLiveNews, fetchTwelveSeries, simulatedTick } from './services/market';
 import { requestAiInsight } from './services/ai';
-import type { EconomicEvent, MarketPair, NewsItem } from './types';
+import type { EconomicEvent, MarketPair, NewsItem, PriceAlert, PriceAlertCondition } from './types';
 
 type Tab = 'home' | 'markets' | 'news' | 'profile';
 type Overlay = 'notifications' | 'converter' | 'alert' | 'calendar' | 'search' | null;
@@ -83,6 +84,9 @@ export default function App() {
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
   const [alerts, setAlerts] = useState<string[]>([]);
+  const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>([]);
+  const [alertCondition, setAlertCondition] = useState<PriceAlertCondition>('above');
+  const [alertTarget, setAlertTarget] = useState('');
   const [events, setEvents] = useState<EconomicEvent[]>(EVENTS);
   const [converterAmount, setConverterAmount] = useState('100');
   const [converterPair, setConverterPair] = useState('EUR/USD');
@@ -102,6 +106,8 @@ export default function App() {
     if (saved === 'dark') setDark(true);
     const savedAlerts = window.localStorage.getItem('berrex-alerts');
     if (savedAlerts) setAlerts(JSON.parse(savedAlerts));
+    const savedPriceAlerts = window.localStorage.getItem('berrex-price-alerts');
+    if (savedPriceAlerts) setPriceAlerts(JSON.parse(savedPriceAlerts));
   }, []);
 
   useEffect(() => {
@@ -113,23 +119,29 @@ export default function App() {
   }, [alerts]);
 
   useEffect(() => {
+    window.localStorage.setItem('berrex-price-alerts', JSON.stringify(priceAlerts));
+  }, [priceAlerts]);
+
+  useEffect(() => {
     if (!booted) return;
     let cancelled = false;
     const load = async () => {
       setLoadingData(true);
-      try {
-        const live = await fetchLiveMarkets(INITIAL_MARKETS);
-        if (!cancelled) {
-          setMarkets(live);
-          setLastSync(Date.now() / 1000);
-        }
-        const liveNews = await fetchLiveNews();
-        if (!cancelled && liveNews.length) setNews(liveNews);
-      } catch {
-        if (!cancelled) setMarkets((current) => simulatedTick(current));
-      } finally {
-        if (!cancelled) setLoadingData(false);
+      const [marketsResult, newsResult, calendarResult] = await Promise.allSettled([
+        fetchLiveMarkets(INITIAL_MARKETS),
+        fetchLiveNews(),
+        fetchEconomicCalendar(),
+      ]);
+      if (cancelled) return;
+      if (marketsResult.status === 'fulfilled') {
+        setMarkets(marketsResult.value);
+        setLastSync(Date.now() / 1000);
+      } else {
+        setMarkets((current) => simulatedTick(current));
       }
+      if (newsResult.status === 'fulfilled' && newsResult.value.length) setNews(newsResult.value);
+      if (calendarResult.status === 'fulfilled' && calendarResult.value.length) setEvents(calendarResult.value);
+      setLoadingData(false);
     };
     void load();
     const id = window.setInterval(() => {
@@ -179,7 +191,13 @@ export default function App() {
 
   const createAlert = () => {
     if (!selected) return;
+    const target = Number(alertTarget);
+    if (!Number.isFinite(target) || target <= 0) return;
     setAlerts((current) => current.includes(selected.symbol) ? current : [...current, selected.symbol]);
+    setPriceAlerts((current) => {
+      const next = current.filter((item) => item.symbol !== selected.symbol);
+      return [...next, { symbol: selected.symbol, condition: alertCondition, target, createdAt: Date.now() }];
+    });
     setOverlay(null);
   };
 
@@ -305,13 +323,13 @@ export default function App() {
       </main>
       <BottomNav active={activeTab} onChange={setActiveTab} />
 
-      {sheetOpen && selected && <div className="sheet-backdrop" onClick={() => setSheetOpen(false)}><div className="pair-sheet" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}><div className="sheet-handle" /><div className="sheet-header"><div><span className="eyebrow">PAIR INTELLIGENCE</span><h2>{selected.symbol}</h2></div><button className="icon-button" onClick={() => setSheetOpen(false)}>×</button></div><div className="sheet-price"><strong>{formatPrice(selected)}</strong><span className={selected.change24h >= 0 ? 'positive' : 'negative'}>{selected.change24h >= 0 ? '+' : ''}{selected.change24h.toFixed(2)}%</span></div><div className="chart-frame"><MarketSparkline points={selected.sparkline} positive={selected.change24h >= 0} large /><div className="chart-labels"><span>1H</span><span>4H</span><span>1D</span><span>1W</span></div></div><div className="sheet-stats"><div><span>Bias</span><strong className={selected.bias}>{selected.bias}</strong></div><div><span>Day high</span><strong>{selected.dayHigh?.toFixed(5) ?? '—'}</strong></div><div><span>Day low</span><strong>{selected.dayLow?.toFixed(5) ?? '—'}</strong></div></div><GlassPanel className="sheet-ai"><div className="section-kicker"><span className="spark-icon"><Icon name="spark" size={15} /></span> AI EXPLANATION</div>{aiLoading ? <div className="skeleton-lines"><span /><span /><span /></div> : <p>{aiText}</p>}</GlassPanel><div className="sheet-tool-row"><button onClick={() => { setOverlay('alert'); setSheetOpen(false); }}><Icon name="bell" size={16} /> Alert</button><button onClick={() => { toggleFavorite(selected.symbol); }}><Icon name="star" size={16} /> {favoriteSymbols.includes(selected.symbol) ? 'Saved' : 'Save'}</button><button onClick={() => setOverlay('converter')}><Icon name="convert" size={16} /> Convert</button></div><div className="sheet-actions"><button className="primary-button large" onClick={() => window.open(EXNESS_URL, '_blank', 'noopener,noreferrer')}>Trade on Exness <Icon name="external" size={16} /></button><button className="secondary-button large" onClick={() => setSheetOpen(false)}>Done</button></div></div></div>}
+      {sheetOpen && selected && <MarketTerminal pair={selected} markets={markets} onClose={() => setSheetOpen(false)} onAlert={() => { setAlertTarget(formatPrice(selected)); setOverlay('alert'); setSheetOpen(false); }} />}
 
       {overlay === 'notifications' && <Modal title="Notifications" eyebrow="YOUR DESK" onClose={() => setOverlay(null)}><div className="notification-list"><button onClick={() => { setOverlay('alert'); }}><span className="notification-icon"><Icon name="bell" size={17} /></span><span><strong>Price alerts</strong><small>{alerts.length ? `${alerts.length} market alert${alerts.length === 1 ? '' : 's'} saved.` : 'No alerts yet. Add one from a pair.'}</small></span><Icon name="chevron" size={16} /></button><button onClick={() => { setOverlay('calendar'); }}><span className="notification-icon"><Icon name="calendar" size={17} /></span><span><strong>Macro calendar</strong><small>{events.length} upcoming events in the current preview.</small></span><Icon name="chevron" size={16} /></button><button onClick={() => { setActiveTab('news'); setOverlay(null); }}><span className="notification-icon"><Icon name="news" size={17} /></span><span><strong>Newsroom</strong><small>{news.length} stories available.</small></span><Icon name="chevron" size={16} /></button></div></Modal>}
 
       {overlay === 'converter' && <Modal title="Currency converter" eyebrow="LIVE FX TOOL" onClose={() => setOverlay(null)}><div className="converter-form"><label>Amount<input type="number" value={converterAmount} onChange={(e) => setConverterAmount(e.target.value)} /></label><label>Pair<select value={converterPair} onChange={(e) => setConverterPair(e.target.value)}>{markets.map((pair) => <option key={pair.symbol}>{pair.symbol}</option>)}</select></label><button className="primary-button full" onClick={() => void runConversion()}>Convert now</button>{converted !== null && <div className="conversion-result"><span>{converterAmount} {converterPair.split('/')[0]}</span><strong>{converted.toFixed(converterPair.includes('JPY') || converterPair.includes('XAU') ? 2 : 5)} {converterPair.split('/')[1]}</strong></div>}</div></Modal>}
 
-      {overlay === 'alert' && <Modal title="Price alerts" eyebrow="WATCH THIS MARKET" onClose={() => setOverlay(null)}><div className="alert-picker"><p>Choose a market to keep in your local alert list. Browser push delivery can be added when BerreX gets a backend.</p><div className="alert-market-list">{markets.map((pair) => <button key={pair.symbol} className={alerts.includes(pair.symbol) ? 'selected' : ''} onClick={() => { setSelectedSymbol(pair.symbol); setAlerts((current) => current.includes(pair.symbol) ? current.filter((item) => item !== pair.symbol) : [...current, pair.symbol]); }}><span>{pair.symbol}</span><strong className={pair.change24h >= 0 ? 'positive' : 'negative'}>{pair.change24h >= 0 ? '+' : ''}{pair.change24h.toFixed(2)}%</strong></button>)}</div><button className="secondary-button full" onClick={createAlert}>Save {selected.symbol} alert</button></div></Modal>}
+      {overlay === 'alert' && <Modal title="Price alerts" eyebrow="CONDITIONAL ALERT" onClose={() => setOverlay(null)}><div className="alert-picker"><p>Set a price condition for {selected.symbol}. Alerts are stored on this device; server push delivery will be added through the data backend.</p><div className="alert-current"><span>Current</span><strong>{formatPrice(selected)}</strong></div><div className="alert-condition-grid"><label>Condition<select value={alertCondition} onChange={(event) => setAlertCondition(event.target.value as PriceAlertCondition)}><option value="above">Price above</option><option value="below">Price below</option></select></label><label>Target<input inputMode="decimal" value={alertTarget} onChange={(event) => setAlertTarget(event.target.value)} placeholder={formatPrice(selected)} /></label></div><button className="primary-button full" onClick={createAlert}>Save {selected.symbol} alert</button><div className="alert-market-list">{markets.map((pair) => <button key={pair.symbol} className={alerts.includes(pair.symbol) ? 'selected' : ''} onClick={() => { setSelectedSymbol(pair.symbol); setAlertTarget(formatPrice(pair)); }}><span>{pair.symbol}</span><strong className={pair.change24h >= 0 ? 'positive' : 'negative'}>{pair.change24h >= 0 ? '+' : ''}{pair.change24h.toFixed(2)}%</strong></button>)}</div>{priceAlerts.length > 0 && <div className="saved-alert-list"><div className="settings-label">SAVED CONDITIONS</div>{priceAlerts.map((alert) => <button key={alert.createdAt} onClick={() => { const pair = markets.find((item) => item.symbol === alert.symbol); if (pair) { setSelectedSymbol(pair.symbol); setAlertCondition(alert.condition); setAlertTarget(String(alert.target)); } }}><span>{alert.symbol} {alert.condition === 'above' ? '>' : '<'} {alert.target}</span><small>Local alert</small></button>)}</div>}</div></Modal>}
 
       {overlay === 'calendar' && <Modal title="Economic calendar" eyebrow="MACRO EVENTS" wide onClose={() => setOverlay(null)}><div className="event-list">{events.map((event: EconomicEvent) => <button className="event-row" key={event.event}><div><span>{event.currency} · {event.country}</span><strong>{event.event}</strong><small>{event.date}</small></div><span className={`impact ${event.impact.toLowerCase()}`}>{event.impact}</span></button>)}</div><p className="modal-note">For production, this panel is wired to FMP's economic calendar endpoint when the FMP key is configured.</p></Modal>}
 
