@@ -196,56 +196,85 @@ export function DemoTrading({ markets, enabled, onOpenPair }: { markets: MarketP
 
   return (
     <div className="utility-page demo-page">
-      <div className="page-header">
-        <span className="eyebrow">BERREX DEMO</span>
-        <h1>Trade with live prices.</h1>
-        <p className="subtle">Virtual money only. Quotes follow the BerreX market feed; no order is sent to a broker.</p>
+      <div className="page-header demo-page-header">
+        <div>
+          <span className="eyebrow">PAPER TRADING</span>
+          <h1>Demo account</h1>
+          <p className="subtle">Practice with the same BerreX prices without risking real money.</p>
+        </div>
+        <button className="secondary-button demo-reset-top" onClick={resetDemo}><Icon name="refresh" size={15} /> Reset</button>
       </div>
+
+      <GlassPanel className="demo-account-hero">
+        <div className="demo-account-hero-top">
+          <div>
+            <span className="demo-account-label">DEMO ACCOUNT</span>
+            <strong className="demo-account-equity">$\${equity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+            <span className={unrealized >= 0 ? 'demo-account-pnl positive' : 'demo-account-pnl negative'}>
+              {unrealized >= 0 ? '+' : ''}$\${unrealized.toFixed(2)} open P/L
+            </span>
+          </div>
+          <span className="demo-status-pill"><span className="live-dot" /> SIMULATED</span>
+        </div>
+        <div className="demo-account-stats">
+          <div><span>Balance</span><strong>$\${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
+          <div><span>Open P/L</span><strong className={unrealized >= 0 ? 'positive' : 'negative'}>{unrealized >= 0 ? '+' : ''}$\${unrealized.toFixed(2)}</strong></div>
+          <div><span>Exposure</span><strong>$\${openNotional.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></div>
+          <div><span>Positions</span><strong>{positions.length}</strong></div>
+        </div>
+      </GlassPanel>
 
       <div className="demo-live-banner">
         <span><span className="live-dot" /> {markets.some((pair) => pair.timestamp) ? 'Market feed connected' : 'Using current BerreX feed'}</span>
         <button onClick={() => selected && onOpenPair(selected.symbol)}>Open chart <Icon name="arrow" size={14} /></button>
       </div>
 
-      <div className="demo-account-grid">
-        <GlassPanel className="demo-account-card primary">
-          <span>Equity</span><strong>${equity.toFixed(2)}</strong><small>{unrealized >= 0 ? '+' : ''}{unrealized.toFixed(2)} unrealized</small>
-        </GlassPanel>
-        <GlassPanel className="demo-account-card">
-          <span>Balance</span><strong>${balance.toFixed(2)}</strong><small>Starting balance $10,000</small>
-        </GlassPanel>
-        <GlassPanel className="demo-account-card">
-          <span>Open P/L</span><strong className={unrealized >= 0 ? 'positive' : 'negative'}>{unrealized >= 0 ? '+' : ''}${unrealized.toFixed(2)}</strong><small>{positions.length} open position{positions.length === 1 ? '' : 's'}</small>
-        </GlassPanel>
-        <GlassPanel className="demo-account-card">
-          <span>Open notional</span><strong>${openNotional.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong><small>Simulator only</small>
-        </GlassPanel>
-      </div>
-
       <GlassPanel className="demo-ticket">
-        <div className="utility-section-head"><div><span className="eyebrow">ORDER TICKET</span><h2>Practice a trade</h2></div><span className="demo-mode-pill">PAPER</span></div>
+        <div className="demo-ticket-header">
+          <div><span className="eyebrow">NEW ORDER</span><h2>Open a position</h2><p>Choose a market, side and risk levels.</p></div>
+          <span className="demo-mode-pill">PAPER</span>
+        </div>
+
         <div className="demo-pair-picker">{markets.map((pair) => (
           <button key={pair.symbol} className={selected?.symbol === pair.symbol ? 'active' : ''} onClick={() => setSelectedSymbol(pair.symbol)}>
-            <span>{pair.symbol}</span><strong className={pair.change24h >= 0 ? 'positive' : 'negative'}>{pair.change24h >= 0 ? '+' : ''}{pair.change24h.toFixed(2)}%</strong>
+            <span>{pair.symbol}</span>
+            <strong>{formatPrice(pair)}</strong>
+            <small className={pair.change24h >= 0 ? 'positive' : 'negative'}>{pair.change24h >= 0 ? '+' : ''}{pair.change24h.toFixed(2)}%</small>
           </button>
         ))}</div>
-        {selected && <div className="demo-quote-card">
-          <div><span>{selected.symbol}</span><strong>{formatPrice(selected)}</strong></div>
-          <MarketSparkline points={selected.sparkline} positive={selected.change24h >= 0} />
-          <small>Current simulated trade price · {selectedPnl >= 0 ? '+' : ''}{selectedPnl.toFixed(2)} open P/L on this pair</small>
+
+        {selected && <div className="demo-market-quote">
+          <div className="demo-market-quote-main">
+            <div><span>{selected.symbol}</span><strong>{formatPrice(selected)}</strong><small>{selected.base} / {selected.quote}</small></div>
+            <MarketSparkline points={selected.sparkline} positive={selected.change24h >= 0} />
+          </div>
+          <div className="demo-bidask">
+            <div><span>Bid</span><strong>{selected.bid?.toFixed(priceDigits(selected.symbol)) ?? formatPrice(selected)}</strong></div>
+            <div><span>Ask</span><strong>{selected.ask?.toFixed(priceDigits(selected.symbol)) ?? formatPrice(selected)}</strong></div>
+            <div><span>24h</span><strong className={selected.change24h >= 0 ? 'positive' : 'negative'}>{selected.change24h >= 0 ? '+' : ''}{selected.change24h.toFixed(2)}%</strong></div>
+          </div>
         </div>}
-        <div className="demo-side-toggle"><button className={side === 'buy' ? 'buy active' : 'buy'} onClick={() => setSide('buy')}>Buy / Long</button><button className={side === 'sell' ? 'sell active' : 'sell'} onClick={() => setSide('sell')}>Sell / Short</button></div>
-        <div className="demo-field-grid">
-          <label>Units<input inputMode="numeric" value={units} onChange={(e) => setUnits(e.target.value)} /></label>
-          <label>Stop loss<input inputMode="decimal" value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} placeholder={selected ? formatPrice(selected) : 'Price'} /></label>
-          <label>Take profit<input inputMode="decimal" value={takeProfit} onChange={(e) => setTakeProfit(e.target.value)} placeholder={selected ? formatPrice(selected) : 'Price'} /></label>
+
+        <div className="demo-side-toggle">
+          <button className={side === 'buy' ? 'buy active' : 'buy'} onClick={() => setSide('buy')}><span>BUY / LONG</span><small>Open with rising price</small></button>
+          <button className={side === 'sell' ? 'sell active' : 'sell'} onClick={() => setSide('sell')}><span>SELL / SHORT</span><small>Open with falling price</small></button>
         </div>
-        <button className={side === 'buy' ? 'demo-execute buy' : 'demo-execute sell'} onClick={openDemoPosition}>{side === 'buy' ? 'Open demo buy' : 'Open demo sell'} <span>{selected ? formatPrice(selected) : '—'}</span></button>
-        <p className="demo-note"><Icon name="shield" size={13} /> All positions are local simulations. They have no cash value and cannot be withdrawn or sent to Exness.</p>
+
+        <div className="demo-field-grid">
+          <label><span>Units</span><input inputMode="numeric" value={units} onChange={(e) => setUnits(e.target.value)} /></label>
+          <label><span>Stop loss</span><input inputMode="decimal" value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} placeholder={selected ? formatPrice(selected) : 'Price'} /></label>
+          <label><span>Take profit</span><input inputMode="decimal" value={takeProfit} onChange={(e) => setTakeProfit(e.target.value)} placeholder={selected ? formatPrice(selected) : 'Price'} /></label>
+        </div>
+
+        <button className={side === 'buy' ? 'demo-execute buy' : 'demo-execute sell'} onClick={openDemoPosition}>
+          <span>{side === 'buy' ? 'Open Buy / Long' : 'Open Sell / Short'}</span>
+          <strong>{selected ? formatPrice(selected) : '—'}</strong>
+        </button>
+        <p className="demo-note"><Icon name="shield" size={13} /> Simulated only. No broker order is created, and the balance has no cash value.</p>
       </GlassPanel>
 
       <section className="utility-section">
-        <div className="utility-section-head"><div><span className="eyebrow">POSITIONS</span><h2>Open trades</h2></div><span className="muted-small">{positions.length} live</span></div>
+        <div className="utility-section-head"><div><span className="eyebrow">OPEN POSITIONS</span><h2>What you have running</h2></div><span className="muted-small">{positions.length} active</span></div>
         {positions.length ? <div className="demo-position-list">{positions.map((position) => {
           const current = markPrice(position);
           const pnl = (position.side === 'buy' ? current - position.entryPrice : position.entryPrice - current) * position.units;
@@ -253,17 +282,22 @@ export function DemoTrading({ markets, enabled, onOpenPair }: { markets: MarketP
           const displayPrice = pair ? formatPrice(pair) : current.toFixed(priceDigits(position.symbol));
           return <article className="demo-position-row" key={position.id}>
             <button className="demo-position-main" onClick={() => onOpenPair(position.symbol)}>
-              <span>{position.symbol}</span><strong className={pnl >= 0 ? 'positive' : 'negative'}>{pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}</strong>
-              <small>{position.side === 'buy' ? 'Long' : 'Short'} · {position.units.toLocaleString()} units · {displayPrice}</small>
+              <div className="demo-position-head"><span>{position.symbol}</span><b className={position.side === 'buy' ? 'position-long' : 'position-short'}>{position.side === 'buy' ? 'LONG' : 'SHORT'}</b></div>
+              <strong className={pnl >= 0 ? 'positive' : 'negative'}>{pnl >= 0 ? '+' : ''}$\${pnl.toFixed(2)}</strong>
+              <small>{position.units.toLocaleString()} units · Entry {position.entryPrice.toFixed(priceDigits(position.symbol))} · Now {displayPrice}</small>
+              <small>{position.stopLoss !== undefined ? \`SL $\${position.stopLoss.toFixed(priceDigits(position.symbol))}\` : 'No SL'} · {position.takeProfit !== undefined ? \`TP $\${position.takeProfit.toFixed(priceDigits(position.symbol))}\` : 'No TP'}</small>
             </button>
-            <button className="demo-close-button" onClick={() => closePosition(position)} aria-label={`Close ${position.symbol}`}>×</button>
+            <button className="demo-close-button" onClick={() => closePosition(position)} aria-label={\`Close \${position.symbol}\`}>×</button>
           </article>;
-        })}</div> : <GlassPanel className="utility-empty compact"><strong>No open trades</strong><p>Use the ticket above to practice a live-price entry.</p></GlassPanel>}
+        })}</div> : <GlassPanel className="utility-empty compact"><strong>No open positions</strong><p>Your demo account is flat. Use the order ticket above to place a simulated trade.</p></GlassPanel>}
       </section>
 
       <section className="utility-section">
-        <div className="utility-section-head"><div><span className="eyebrow">RECENT RESULTS</span><h2>Trade history</h2></div><button className="text-button" onClick={resetDemo}>Reset account</button></div>
-        {history.length ? <div className="demo-history-list">{history.slice().reverse().slice(0, 8).map((trade) => <div className="demo-history-row" key={trade.id + trade.closedAt}><span>{trade.symbol}<small>{trade.side === 'buy' ? 'Long' : 'Short'} · {trade.units.toLocaleString()} units</small></span><strong className={trade.pnl >= 0 ? 'positive' : 'negative'}>{trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}</strong></div>)}</div> : <GlassPanel className="utility-empty compact"><strong>Nothing closed yet</strong><p>Close a position to start building a local demo history.</p></GlassPanel>}
+        <div className="utility-section-head"><div><span className="eyebrow">TRADE HISTORY</span><h2>Recent activity</h2></div><button className="text-button" onClick={resetDemo}>Reset account</button></div>
+        {history.length ? <div className="demo-history-list">{history.slice().reverse().slice(0, 8).map((trade) => <div className="demo-history-row" key={trade.id + trade.closedAt}>
+          <span><strong>{trade.symbol}</strong><small>{trade.side === 'buy' ? 'Long' : 'Short'} · {trade.units.toLocaleString()} units · {new Date(trade.closedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small></span>
+          <strong className={trade.pnl >= 0 ? 'positive' : 'negative'}>{trade.pnl >= 0 ? '+' : ''}$\${trade.pnl.toFixed(2)}</strong>
+        </div>)}</div> : <GlassPanel className="utility-empty compact"><strong>No closed trades yet</strong><p>Completed demo trades will appear here with their realised P/L.</p></GlassPanel>}
       </section>
     </div>
   );
