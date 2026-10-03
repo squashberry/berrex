@@ -1,7 +1,7 @@
 import { Icon, type IconName } from '../lib/icons';
 
 type Item = {
-  id: 'home' | 'markets' | 'news' | 'lab' | 'profile';
+  id: 'home' | 'markets' | 'news' | 'profile';
   label: string;
   icon: IconName;
 };
@@ -10,11 +10,10 @@ const items: Item[] = [
   { id: 'home', label: 'Home', icon: 'home' },
   { id: 'markets', label: 'Markets', icon: 'chart' },
   { id: 'news', label: 'News', icon: 'news' },
-  { id: 'lab', label: 'Lab', icon: 'spark' },
   { id: 'profile', label: 'You', icon: 'profile' },
 ];
 
-export function BottomNav({ active, onChange }: { active: Item['id']; onChange: (id: Item['id']) => void }) {
+export function BottomNav({ active, onChange }: { active: Item['id'] | null; onChange: (id: Item['id']) => void }) {
   return (
     <nav className="bottom-nav" aria-label="Primary navigation">
       {items.map((item) => (

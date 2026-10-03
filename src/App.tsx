@@ -6,14 +6,25 @@ import { PairCard } from './components/PairCard';
 import { MarketTerminal } from './components/MarketTerminal';
 import { MarketSparkline } from './components/MarketSparkline';
 import { MarketLab } from './components/MarketLab';
+import { DemoTrading } from './components/DemoTrading';
+import { LearnForex } from './components/LearnForex';
 import { Icon } from './lib/icons';
 import { DEFAULT_SELECTED, EVENTS, INITIAL_MARKETS, NEWS } from './data/market';
 import { convertCurrency, connectMarketWebSocket, fetchEconomicCalendar, fetchLiveMarkets, fetchLiveNews, fetchTwelveSeries, simulatedTick } from './services/market';
 import { requestAiInsight } from './services/ai';
 import type { EconomicEvent, MarketPair, NewsItem, PriceAlert, PriceAlertCondition } from './types';
 
-type Tab = 'home' | 'markets' | 'news' | 'lab' | 'profile';
+type Tab = 'home' | 'markets' | 'news' | 'lab' | 'profile' | 'demo' | 'learn';
 type Overlay = 'notifications' | 'converter' | 'alert' | 'calendar' | 'search' | null;
+type PromoKind = 'whats-new' | 'live-update' | 'learn' | 'demo';
+type Promo = { kind: PromoKind; eyebrow: string; title: string; text: string; action: string; target: 'markets' | 'news' | 'demo' | 'learn' };
+
+const PROMOS: Promo[] = [
+  { kind: 'whats-new', eyebrow: 'WHAT\'S NEW', title: 'BerreX is easier to use on Android.', text: 'Tools now hold Market Lab, Demo Trading and Forex Learning, while the main navigation stays focused on the four core areas.', action: 'See the new tools', target: 'learn' },
+  { kind: 'live-update', eyebrow: 'LIVE UPDATE', title: 'Your market feed is updating.', text: 'Quotes, watchlists and demo positions follow the current BerreX market feed, so you can keep an eye on the same prices across the app.', action: 'Open markets', target: 'markets' },
+  { kind: 'learn', eyebrow: 'LEARN FOREX', title: 'Know the setup before the trade.', text: 'The new learning path covers quotes, pips, orders, risk, charts and macro events in short mobile-friendly lessons.', action: 'Start learning', target: 'learn' },
+  { kind: 'demo', eyebrow: 'DEMO TRADING', title: 'Practice with virtual money.', text: 'Use current BerreX prices to open simulated long or short positions, add risk levels and review your demo history.', action: 'Open demo', target: 'demo' },
+];
 
 const EXNESS_URL = import.meta.env.VITE_EXNESS_REFERRAL_URL || 'https://www.exness.com/';
 const API_ENABLED = Boolean(import.meta.env.VITE_MARKET_API_URL || import.meta.env.VITE_FMP_API_KEY || import.meta.env.VITE_TWELVEDATA_API_KEY);
@@ -43,6 +54,22 @@ function Splash({ onDone }: { onDone: () => void }) {
       <div className="splash-subtitle">market intelligence</div>
       <div className="splash-loader"><span /></div>
       <div className="splash-footer">by Squashberry</div>
+    </div>
+  );
+}
+
+function PromoPopup({ promo, onAction, onLater, onDisable }: { promo: Promo; onAction: () => void; onLater: () => void; onDisable: () => void }) {
+  return (
+    <div className="promo-backdrop" onClick={onLater}>
+      <section className={`promo-card promo-${promo.kind}`} role="dialog" aria-modal="true" aria-label={promo.title} onClick={(event) => event.stopPropagation()}>
+        <div className="promo-orb" />
+        <button className="promo-close" onClick={onLater} aria-label="Close update">×</button>
+        <span className="eyebrow">{promo.eyebrow}</span>
+        <h2>{promo.title}</h2>
+        <p>{promo.text}</p>
+        <div className="promo-actions"><button className="primary-button" onClick={onAction}>{promo.action} <Icon name="arrow" size={14} /></button><button className="secondary-button" onClick={onLater}>Remind me later</button></div>
+        <button className="promo-disable" onClick={onDisable}>Don’t show tips like this</button>
+      </section>
     </div>
   );
 }
@@ -89,6 +116,9 @@ export default function App() {
   const [marketFilter, setMarketFilter] = useState<'All' | 'Majors' | 'Metals' | 'Favorites'>('All');
   const [toolsOpen, setToolsOpen] = useState(false);
   const [showFloatingTools, setShowFloatingTools] = useState(false);
+  const [demoEnabled, setDemoEnabled] = useState(true);
+  const [tipsEnabled, setTipsEnabled] = useState(true);
+  const [promo, setPromo] = useState<Promo | null>(null);
   const finishSplash = useCallback(() => setBooted(true), []);
 
   useEffect(() => {
@@ -111,6 +141,10 @@ export default function App() {
     if (savedPriceAlerts) setPriceAlerts(JSON.parse(savedPriceAlerts));
     const savedFavorites = window.localStorage.getItem('berrex-favorites');
     if (savedFavorites) setFavoriteSymbols(JSON.parse(savedFavorites));
+    const savedDemo = window.localStorage.getItem('berrex-demo-enabled');
+    if (savedDemo === 'false') setDemoEnabled(false);
+    const savedTips = window.localStorage.getItem('berrex-tips-enabled');
+    if (savedTips === 'false') setTipsEnabled(false);
   }, []);
 
   useEffect(() => {
@@ -128,6 +162,30 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem('berrex-price-alerts', JSON.stringify(priceAlerts));
   }, [priceAlerts]);
+
+  useEffect(() => {
+    window.localStorage.setItem('berrex-demo-enabled', String(demoEnabled));
+  }, [demoEnabled]);
+
+  useEffect(() => {
+    window.localStorage.setItem('berrex-tips-enabled', String(tipsEnabled));
+  }, [tipsEnabled]);
+
+  useEffect(() => {
+    if (!booted || !tipsEnabled) return;
+    const sessionCount = Number(window.sessionStorage.getItem('berrex-promo-count') || 0);
+    const lastShown = Number(window.localStorage.getItem('berrex-promo-last-shown') || 0);
+    const snoozedUntil = Number(window.localStorage.getItem('berrex-promo-snoozed-until') || 0);
+    if (sessionCount >= 2 || Date.now() - lastShown < 90 * 60 * 1000 || Date.now() < snoozedUntil) return;
+    const delay = 18000 + Math.floor(Math.random() * 22000);
+    const id = window.setTimeout(() => {
+      const next = PROMOS[Math.floor(Math.random() * PROMOS.length)];
+      setPromo(next);
+      window.sessionStorage.setItem('berrex-promo-count', String(sessionCount + 1));
+      window.localStorage.setItem('berrex-promo-last-shown', String(Date.now()));
+    }, delay);
+    return () => window.clearTimeout(id);
+  }, [booted, tipsEnabled]);
 
   useEffect(() => {
     for (const alert of priceAlerts) {
@@ -359,6 +417,8 @@ export default function App() {
       <GlassPanel className="profile-card"><div className="avatar">B</div><div><strong>BerreX workspace</strong><span>{alerts.length} active alert{alerts.length === 1 ? '' : 's'} · {favoriteSymbols.length} favorites</span></div><button className="icon-button" onClick={() => setOverlay('notifications')}><Icon name="bell" size={17} /></button></GlassPanel>
       <div className="settings-group"><div className="settings-label">APPEARANCE</div><button className="setting-row" onClick={() => setDark((current) => !current)}><span className="setting-icon"><Icon name={dark ? 'moon' : 'sun'} size={18} /></span><span><strong>{dark ? 'Dark' : 'Light'} mode</strong><small>Saved on this device</small></span><span className="setting-value">{dark ? 'Dark' : 'Light'}</span></button></div>
       <div className="settings-group"><div className="settings-label">TOOLS</div><button className="setting-row" onClick={() => setOverlay('converter')}><span className="setting-icon"><Icon name="convert" size={18} /></span><span><strong>Currency converter</strong><small>Live FX conversion</small></span><Icon name="chevron" size={16} /></button><button className="setting-row separated" onClick={() => setOverlay('calendar')}><span className="setting-icon"><Icon name="calendar" size={18} /></span><span><strong>Economic calendar</strong><small>Upcoming market events</small></span><Icon name="chevron" size={16} /></button><button className="setting-row separated" onClick={() => setOverlay('alert')}><span className="setting-icon"><Icon name="bell" size={18} /></span><span><strong>Price alerts</strong><small>Watch selected markets</small></span><Icon name="chevron" size={16} /></button></div>
+      <div className="settings-group"><div className="settings-label">PRACTICE</div><button className="setting-row" onClick={() => setDemoEnabled((current) => !current)}><span className="setting-icon"><Icon name="chart" size={18} /></span><span><strong>Demo trading</strong><small>Use live BerreX prices with virtual money</small></span><span className="setting-value">{demoEnabled ? 'On' : 'Off'}</span></button><button className="setting-row separated" onClick={() => { setActiveTab('demo'); setToolsOpen(false); }}><span className="setting-icon"><Icon name="arrow" size={18} /></span><span><strong>Open demo account</strong><small>Practice entries, exits and risk levels</small></span><Icon name="chevron" size={16} /></button></div>
+      <div className="settings-group"><div className="settings-label">PREFERENCES</div><button className="setting-row" onClick={() => setTipsEnabled((current) => !current)}><span className="setting-icon"><Icon name="spark" size={18} /></span><span><strong>Product tips & updates</strong><small>Occasional BerreX feature and learning tips</small></span><span className="setting-value">{tipsEnabled ? 'On' : 'Off'}</span></button></div>
       <div className="settings-group"><div className="settings-label">REFERRAL</div><button className="setting-row" onClick={() => window.open(EXNESS_URL, '_blank', 'noopener,noreferrer')}><span className="setting-icon"><Icon name="external" size={18} /></span><span><strong>Trade on Exness</strong><small>Opens the broker website</small></span><Icon name="chevron" size={16} /></button></div>
       <GlassPanel className="legal-card"><div className="section-kicker"><Icon name="shield" size={15} /> RISK NOTICE</div><p>BerreX is an informational market tool. Prices, news and AI-generated explanations can be delayed, incomplete or incorrect. Nothing in the app is financial advice.</p></GlassPanel>
     </>
@@ -376,20 +436,20 @@ export default function App() {
         {activeTab === 'markets' && renderMarkets()}
         {activeTab === 'news' && renderNews()}
         {activeTab === 'lab' && <MarketLab markets={markets} events={events} news={news} favoriteSymbols={favoriteSymbols} onToggleFavorite={toggleFavorite} onOpenPair={openPair} onRefresh={() => { setLoadingData(true); void fetchLiveMarkets(markets).then(setMarkets).finally(() => setLoadingData(false)); }} />}
+        {activeTab === 'demo' && <DemoTrading markets={markets} enabled={demoEnabled} onOpenPair={openPair} />}
+        {activeTab === 'learn' && <LearnForex onOpenDemo={() => setActiveTab('demo')} />}
         {activeTab === 'profile' && renderProfile()}
       </main>
-      <BottomNav active={activeTab} onChange={setActiveTab} />
+      <BottomNav active={['home', 'markets', 'news', 'profile'].includes(activeTab) ? (activeTab as 'home' | 'markets' | 'news' | 'profile') : null} onChange={(id) => { setActiveTab(id); setToolsOpen(false); }} />
 
       <div className={showFloatingTools ? 'tools-dock visible' : 'tools-dock'}>
         <button className={toolsOpen ? 'tools-trigger active' : 'tools-trigger'} onClick={() => setToolsOpen((open) => !open)} aria-label="Open BerreX tools">
           <Icon name="tools" size={18} /><span>Tools</span><Icon name="chevron" size={14} />
         </button>
         {toolsOpen && <div className="tools-panel">
-          <button onClick={() => { setOverlay('converter'); setToolsOpen(false); }}><span><Icon name="convert" size={17} /></span><strong>Convert</strong><small>FX calculator</small></button>
-          <button onClick={() => { setOverlay('calendar'); setToolsOpen(false); }}><span><Icon name="calendar" size={17} /></span><strong>Calendar</strong><small>Macro events</small></button>
-          <button onClick={() => { setOverlay('alert'); setAlertTarget(formatPrice(selected)); setToolsOpen(false); }}><span><Icon name="bell" size={17} /></span><strong>Alerts</strong><small>{alerts.length || 'Set one'}</small></button>
-          <button onClick={() => { setActiveTab('markets'); setToolsOpen(false); }}><span><Icon name="search" size={17} /></span><strong>Explore</strong><small>Find a pair</small></button>
-          <button onClick={() => { setActiveTab('lab'); setToolsOpen(false); }}><span><Icon name="spark" size={17} /></span><strong>Market Lab</strong><small>Screener + risk + macro</small></button>
+          <div className="tools-panel-section"><span>TRADE</span><button className={demoEnabled ? '' : 'disabled'} disabled={!demoEnabled} onClick={() => { setActiveTab('demo'); setToolsOpen(false); }}><span><Icon name="chart" size={17} /></span><strong>Demo trading</strong><small>{demoEnabled ? 'Virtual money · live feed' : 'Disabled in settings'}</small></button></div>
+          <div className="tools-panel-section"><span>RESEARCH</span><button onClick={() => { setActiveTab('lab'); setToolsOpen(false); }}><span><Icon name="spark" size={17} /></span><strong>Market Lab</strong><small>Screener, risk & macro</small></button><button onClick={() => { setActiveTab('markets'); setToolsOpen(false); }}><span><Icon name="search" size={17} /></span><strong>Explore markets</strong><small>Find pairs & watchlists</small></button><button onClick={() => { setOverlay('calendar'); setToolsOpen(false); }}><span><Icon name="calendar" size={17} /></span><strong>Calendar</strong><small>Macro events</small></button><button onClick={() => { setOverlay('alert'); setAlertTarget(formatPrice(selected)); setToolsOpen(false); }}><span><Icon name="bell" size={17} /></span><strong>Alerts</strong><small>{alerts.length || 'Set one'}</small></button><button onClick={() => { setOverlay('converter'); setToolsOpen(false); }}><span><Icon name="convert" size={17} /></span><strong>Convert</strong><small>FX calculator</small></button></div>
+          <div className="tools-panel-section"><span>LEARN</span><button onClick={() => { setActiveTab('learn'); setToolsOpen(false); }}><span><Icon name="news" size={17} /></span><strong>Learn forex</strong><small>Short lessons & glossary</small></button></div>
         </div>}
       </div>
 
@@ -406,6 +466,7 @@ export default function App() {
       {overlay === 'search' && <Modal title="Search BerreX" eyebrow="QUICK FIND" onClose={() => setOverlay(null)}><div className="search-modal"><div className="search-panel"><Icon name="search" size={18} /><input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Pair, currency or keyword…" /></div><div className="search-results">{markets.filter((p) => !search || p.symbol.toLowerCase().includes(search.toLowerCase()) || p.base.toLowerCase().includes(search.toLowerCase()) || p.quote.toLowerCase().includes(search.toLowerCase())).map((pair) => <button key={pair.symbol} onClick={() => { setOverlay(null); void openPair(pair.symbol); }}><span>{pair.symbol}</span><strong>{formatPrice(pair)}</strong></button>)}</div></div></Modal>}
 
       {alertNotice && <div className="alert-toast" role="status"><span className="alert-toast-dot" /><div><strong>Price alert triggered</strong><small>{alertNotice}</small></div><button onClick={() => setAlertNotice(null)}>×</button></div>}
+      {promo && <PromoPopup promo={promo} onAction={() => { const target = promo.target; setPromo(null); setActiveTab(target); setToolsOpen(false); }} onLater={() => { setPromo(null); window.localStorage.setItem('berrex-promo-snoozed-until', String(Date.now() + 3 * 60 * 60 * 1000)); }} onDisable={() => { setPromo(null); setTipsEnabled(false); }} />}
 
       {selectedNews && <Modal title={selectedNews.title} eyebrow={selectedNews.currency + ' · ' + selectedNews.source} onClose={() => setSelectedNews(null)}><article className="article-reader"><div className="article-cover"><span>BERREX</span><b>{selectedNews.currency}</b></div><p className="article-lead">{selectedNews.text || 'Market coverage from the BerreX newsroom.'}</p><p>Read the original publication for the full story and source context. BerreX surfaces headlines for market awareness and does not independently verify every publisher claim.</p>{selectedNews.url && <button className="primary-button full" onClick={() => window.open(selectedNews.url, '_blank', 'noopener,noreferrer')}>Open original article <Icon name="external" size={15} /></button>}</article></Modal>}
     </div>
