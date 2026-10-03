@@ -209,17 +209,17 @@ export function DemoTrading({ markets, enabled, onOpenPair }: { markets: MarketP
         <div className="demo-account-hero-top">
           <div>
             <span className="demo-account-label">DEMO ACCOUNT</span>
-            <strong className="demo-account-equity">$\${equity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+            <strong className="demo-account-equity">${equity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             <span className={unrealized >= 0 ? 'demo-account-pnl positive' : 'demo-account-pnl negative'}>
-              {unrealized >= 0 ? '+' : ''}$\${unrealized.toFixed(2)} open P/L
+              {unrealized >= 0 ? '+' : ''}${unrealized.toFixed(2)} open P/L
             </span>
           </div>
           <span className="demo-status-pill"><span className="live-dot" /> SIMULATED</span>
         </div>
         <div className="demo-account-stats">
-          <div><span>Balance</span><strong>$\${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
-          <div><span>Open P/L</span><strong className={unrealized >= 0 ? 'positive' : 'negative'}>{unrealized >= 0 ? '+' : ''}$\${unrealized.toFixed(2)}</strong></div>
-          <div><span>Exposure</span><strong>$\${openNotional.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></div>
+          <div><span>Balance</span><strong>${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
+          <div><span>Open P/L</span><strong className={unrealized >= 0 ? 'positive' : 'negative'}>{unrealized >= 0 ? '+' : ''}${unrealized.toFixed(2)}</strong></div>
+          <div><span>Exposure</span><strong>${openNotional.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></div>
           <div><span>Positions</span><strong>{positions.length}</strong></div>
         </div>
       </GlassPanel>
@@ -283,11 +283,11 @@ export function DemoTrading({ markets, enabled, onOpenPair }: { markets: MarketP
           return <article className="demo-position-row" key={position.id}>
             <button className="demo-position-main" onClick={() => onOpenPair(position.symbol)}>
               <div className="demo-position-head"><span>{position.symbol}</span><b className={position.side === 'buy' ? 'position-long' : 'position-short'}>{position.side === 'buy' ? 'LONG' : 'SHORT'}</b></div>
-              <strong className={pnl >= 0 ? 'positive' : 'negative'}>{pnl >= 0 ? '+' : ''}$\${pnl.toFixed(2)}</strong>
+              <strong className={pnl >= 0 ? 'positive' : 'negative'}>{pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}</strong>
               <small>{position.units.toLocaleString()} units · Entry {position.entryPrice.toFixed(priceDigits(position.symbol))} · Now {displayPrice}</small>
-              <small>{position.stopLoss !== undefined ? \`SL $\${position.stopLoss.toFixed(priceDigits(position.symbol))}\` : 'No SL'} · {position.takeProfit !== undefined ? \`TP $\${position.takeProfit.toFixed(priceDigits(position.symbol))}\` : 'No TP'}</small>
+              <small>{position.stopLoss !== undefined ? `SL ${position.stopLoss.toFixed(priceDigits(position.symbol))}` : 'No SL'} · {position.takeProfit !== undefined ? `TP ${position.takeProfit.toFixed(priceDigits(position.symbol))}` : 'No TP'}</small>
             </button>
-            <button className="demo-close-button" onClick={() => closePosition(position)} aria-label={\`Close \${position.symbol}\`}>×</button>
+            <button className="demo-close-button" onClick={() => closePosition(position)} aria-label={`Close ${position.symbol}`}>×</button>
           </article>;
         })}</div> : <GlassPanel className="utility-empty compact"><strong>No open positions</strong><p>Your demo account is flat. Use the order ticket above to place a simulated trade.</p></GlassPanel>}
       </section>
@@ -296,7 +296,7 @@ export function DemoTrading({ markets, enabled, onOpenPair }: { markets: MarketP
         <div className="utility-section-head"><div><span className="eyebrow">TRADE HISTORY</span><h2>Recent activity</h2></div><button className="text-button" onClick={resetDemo}>Reset account</button></div>
         {history.length ? <div className="demo-history-list">{history.slice().reverse().slice(0, 8).map((trade) => <div className="demo-history-row" key={trade.id + trade.closedAt}>
           <span><strong>{trade.symbol}</strong><small>{trade.side === 'buy' ? 'Long' : 'Short'} · {trade.units.toLocaleString()} units · {new Date(trade.closedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small></span>
-          <strong className={trade.pnl >= 0 ? 'positive' : 'negative'}>{trade.pnl >= 0 ? '+' : ''}$\${trade.pnl.toFixed(2)}</strong>
+          <strong className={trade.pnl >= 0 ? 'positive' : 'negative'}>{trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}</strong>
         </div>)}</div> : <GlassPanel className="utility-empty compact"><strong>No closed trades yet</strong><p>Completed demo trades will appear here with their realised P/L.</p></GlassPanel>}
       </section>
     </div>
