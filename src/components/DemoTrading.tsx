@@ -165,15 +165,6 @@ export function DemoTrading({
   const realizedPnl = history.reduce((sum, trade) => sum + trade.pnl, 0);
   const winningTrades = history.filter((trade) => trade.pnl > 0).length;
   const winRate = history.length ? (winningTrades / history.length) * 100 : 0;
-  const selectedPnl = selected
-    ? positions
-        .filter((position) => position.symbol === selected.symbol)
-        .reduce((sum, position) => {
-          const current = markPrice(position);
-          return sum + (position.side === 'buy' ? current - position.entryPrice : position.entryPrice - current) * position.units;
-        }, 0)
-    : 0;
-
   useEffect(() => {
     if (!pendingOrders.length) return;
 
