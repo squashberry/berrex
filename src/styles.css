@@ -466,3 +466,156 @@ button{-webkit-tap-highlight-color:transparent}
   .demo-account-grid{grid-template-columns:1fr 1fr}.learning-hero-grid{grid-template-columns:1fr}.content{padding-left:24px;padding-right:24px}
 }
 @media (prefers-reduced-motion:reduce){.promo-card{animation:none}}
+
+
+
+/* BerreX mobile geometry correction
+   - Keep the fixed navigation centered without mixing left/right with translateX.
+   - Keep the floating Tools control above the navigation and open its panel upward.
+   - Reserve stable header space so the Tools control disappearing on scroll does not shift the other controls.
+   - Lift transient alerts above both controls.
+*/
+@media (max-width:760px){
+  .bottom-nav{
+    left:10px;
+    right:10px;
+    bottom:calc(8px + env(safe-area-inset-bottom));
+    width:auto;
+    min-height:68px;
+    transform:none;
+    padding:6px;
+    border-radius:24px;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+
+  .nav-item{
+    min-width:0;
+    min-height:54px;
+    width:100%;
+    padding:6px 3px;
+    gap:4px;
+    border-radius:17px;
+    font-size:9px;
+    line-height:1.05;
+    overflow:hidden;
+  }
+
+  .nav-item > span:last-child{
+    max-width:100%;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  .tools-dock{
+    left:auto;
+    right:12px;
+    top:auto;
+    bottom:calc(82px + env(safe-area-inset-bottom));
+    width:auto;
+    transform:translateY(16px);
+  }
+
+  .tools-dock.visible{
+    transform:translateY(0);
+  }
+
+  .tools-trigger{
+    min-height:44px;
+    padding-inline:13px;
+    box-shadow:0 12px 34px rgba(25,51,88,.2);
+  }
+
+  .tools-panel{
+    position:absolute;
+    top:auto;
+    right:0;
+    bottom:52px;
+    width:min(360px,calc(100vw - 24px));
+    max-height:min(58svh,520px);
+    overflow-x:hidden;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    padding:8px;
+    border-radius:22px;
+    transform-origin:bottom right;
+  }
+
+  .tools-panel button{
+    min-height:54px;
+    padding:9px;
+    touch-action:manipulation;
+  }
+
+  .top-tools-hidden{
+    opacity:0;
+    transform:none;
+    pointer-events:none;
+    width:38px;
+    min-width:38px;
+    padding-left:0;
+    padding-right:0;
+    margin-left:0;
+  }
+
+  .alert-toast{
+    right:12px;
+    bottom:calc(148px + env(safe-area-inset-bottom));
+    width:min(360px,calc(100vw - 24px));
+  }
+
+  .content{
+    padding-bottom:calc(132px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width:420px){
+  .topbar{
+    padding-left:12px;
+    padding-right:12px;
+  }
+
+  .topbar-actions{
+    gap:4px;
+  }
+
+  .top-control{
+    width:36px;
+    height:36px;
+    border-radius:13px;
+  }
+
+  .top-tools-button,
+  .top-tools-hidden{
+    width:36px;
+    min-width:36px;
+  }
+
+  .tools-dock{
+    right:10px;
+    bottom:calc(80px + env(safe-area-inset-bottom));
+  }
+
+  .tools-panel{
+    right:0;
+    width:calc(100vw - 20px);
+    max-height:56svh;
+  }
+
+  .bottom-nav{
+    left:8px;
+    right:8px;
+    border-radius:23px;
+  }
+
+  .nav-item{
+    min-height:52px;
+    font-size:8px;
+  }
+
+  .content{
+    padding-left:12px;
+    padding-right:12px;
+  }
+}
+
