@@ -96,6 +96,11 @@ export function DemoTrading({
   const [takeProfit, setTakeProfit] = useState('');
   const [leverage, setLeverage] = useState(DEFAULT_LEVERAGE);
   const [notice, setNotice] = useState<string | null>(null);
+  const [demoView, setDemoView] = useState<'trade' | 'positions' | 'orders' | 'history'>('trade');
+  const [managePositionId, setManagePositionId] = useState<string | null>(null);
+  const [editStopLoss, setEditStopLoss] = useState('');
+  const [editTakeProfit, setEditTakeProfit] = useState('');
+  const [partialUnits, setPartialUnits] = useState('');
 
   useEffect(() => {
     try {
@@ -448,6 +453,80 @@ export function DemoTrading({
     clearNoticeLater();
   };
 
+  const beginManagePosition = (position: DemoPosition) => {
+    setManagePositionId(position.id);
+    setEditStopLoss(position.stopLoss === undefined ? '' : String(position.stopLoss));
+    setEditTakeProfit(position.takeProfit === undefined ? '' : String(position.takeProfit));
+    setPartialUnits('');
+  };
+
+  const savePositionRisk = (position: DemoPosition) => {
+    const nextStop = normalizeNumber(editStopLoss);
+    const nextTarget = normalizeNumber(editTakeProfit);
+    const current = markPrice(position);
+
+    if (editStopLoss && nextStop === undefined) {
+      setNotice('Stop loss must be a valid price.');
+      clearNoticeLater();
+      return;
+    }
+    if (editTakeProfit && nextTarget === undefined) {
+      setNotice('Take profit must be a valid price.');
+      clearNoticeLater();
+      return;
+    }
+    if (nextStop !== undefined && (position.side === 'buy' ? nextStop >= current : nextStop <= current)) {
+      setNotice('Stop loss must remain on the loss side of the current price.');
+      clearNoticeLater();
+      return;
+    }
+    if (nextTarget !== undefined && (position.side === 'buy' ? nextTarget <= current : nextTarget >= current)) {
+      setNotice('Take profit must remain on the profit side of the current price.');
+      clearNoticeLater();
+      return;
+    }
+
+    setPositions((items) => items.map((item) => item.id === position.id ? {
+      ...item,
+      stopLoss: nextStop,
+      takeProfit: nextTarget,
+    } : item));
+    setNotice(position.symbol + ' risk levels updated.');
+    clearNoticeLater();
+    setManagePositionId(null);
+  };
+
+  const partialClose = (position: DemoPosition) => {
+    const quantity = Number(partialUnits);
+    if (!Number.isFinite(quantity) || quantity <= 0 || quantity >= position.units) {
+      setNotice('Enter a partial-close amount smaller than the open position.');
+      clearNoticeLater();
+      return;
+    }
+
+    const currentPrice = markPrice(position);
+    const pnl = (position.side === 'buy' ? currentPrice - position.entryPrice : position.entryPrice - currentPrice) * quantity;
+
+    setPositions((items) => items.map((item) => item.id === position.id ? { ...item, units: item.units - quantity } : item));
+    setBalance((currentBalance) => currentBalance + pnl);
+    setHistory((items) => [...items, {
+      id: position.id + ':partial:' + Date.now(),
+      symbol: position.symbol,
+      side: position.side,
+      units: quantity,
+      entryPrice: position.entryPrice,
+      exitPrice: currentPrice,
+      pnl,
+      openedAt: position.openedAt,
+      closedAt: Date.now(),
+      orderType: position.orderType,
+    }].slice(-60));
+    setNotice('Partially closed ' + position.symbol + ' for ' + (pnl >= 0 ? '+' : '') + pnl.toFixed(2) + ' USD.');
+    clearNoticeLater();
+    setManagePositionId(null);
+  };
+
+
   if (!enabled) {
     return (
       <div className="utility-page">
@@ -464,6 +543,110 @@ export function DemoTrading({
       </div>
     );
   }
+
+  const winningPnl = history.filter((trade) => trade.pnl > 0);
+  const losingPnl = history.filter((trade) => trade.pnl < 0);
+  const averageWin = winningPnl.length ? winningPnl.reduce((sum, trade) => sum + trade.pnl, 0) / winningPnl.length : 0;
+  const averageLoss = losingPnl.length ? losingPnl.reduce((sum, trade) => sum + trade.pnl, 0) / losingPnl.length : 0;
+  const selectedBid = selected ? (selected.bid ?? selected.price) : 0;
+  const selectedAsk = selected ? (selected.ask ?? selected.price) : 0;
+
+  const renderPosition = (position: DemoPosition) => {
+    const current = markPrice(position);
+    const pnl = (position.side === 'buy' ? current - position.entryPrice : position.entryPrice - current) * position.units;
+    const pair = findPair(position.symbol);
+    const displayPrice = pair ? formatPriceValue(pair.symbol, current) : current.toFixed(priceDigits(position.symbol));
+
+    return (
+      <article className="demo-position-row" key={position.id}>
+        <button className="demo-position-main" onClick={() => onOpenPair(position.symbol)}>
+          <div className="demo-position-head">
+            <span>{position.symbol}</span>
+            <b className={position.side === 'buy' ? 'position-long' : 'position-short'}>{position.side === 'buy' ? 'LONG' : 'SHORT'}</b>
+            <em>{position.orderType.toUpperCase()}</em>
+          </div>
+          <strong className={pnl >= 0 ? 'positive' : 'negative'}>{pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}</strong>
+          <small>{position.units.toLocaleString()} units · Entry {formatPriceValue(position.symbol, position.entryPrice)} · Now {displayPrice}</small>
+          <small>{position.stopLoss !== undefined ? 'SL $' + formatPriceValue(position.symbol, position.stopLoss) : 'No SL'} · {position.takeProfit !== undefined ? 'TP $' + formatPriceValue(position.symbol, position.takeProfit) : 'No TP'}</small>
+        </button>
+        <button className="demo-manage-button" onClick={() => beginManagePosition(position)}>Manage</button>
+        <button className="demo-close-button" onClick={() => closePosition(position)} aria-label={'Close ' + position.symbol}>×</button>
+
+        {managePositionId === position.id && (
+          <div className="demo-position-manager">
+            <div>
+              <span>MODIFY POSITION</span>
+              <strong>{position.symbol}</strong>
+            </div>
+            <div className="demo-manager-fields">
+              <label>Stop loss<input inputMode="decimal" value={editStopLoss} onChange={(event) => setEditStopLoss(event.target.value)} placeholder="Off" /></label>
+              <label>Take profit<input inputMode="decimal" value={editTakeProfit} onChange={(event) => setEditTakeProfit(event.target.value)} placeholder="Off" /></label>
+              <label>Partial close<input inputMode="numeric" value={partialUnits} onChange={(event) => setPartialUnits(event.target.value)} placeholder="Units" /></label>
+            </div>
+            <div className="demo-manager-actions">
+              <button className="secondary-button" onClick={() => setManagePositionId(null)}>Cancel</button>
+              <button className="secondary-button" onClick={() => partialClose(position)}>Close partial</button>
+              <button className="primary-button" onClick={() => savePositionRisk(position)}>Save SL / TP</button>
+            </div>
+          </div>
+        )}
+      </article>
+    );
+  };
+
+  const renderPositions = () => (
+    <section className="utility-section demo-section-card">
+      <div className="utility-section-head">
+        <div><span className="eyebrow">POSITIONS</span><h2>Active trades</h2></div>
+        <span className="muted-small">{positions.length} active</span>
+      </div>
+      {positions.length ? <div className="demo-position-list">{positions.map(renderPosition)}</div> : (
+        <GlassPanel className="utility-empty compact"><strong>No open positions</strong><p>Your account is flat. Open a market order from the Trade tab to see it here.</p></GlassPanel>
+      )}
+    </section>
+  );
+
+  const renderPendingOrders = () => (
+    <section className="utility-section demo-section-card">
+      <div className="utility-section-head">
+        <div><span className="eyebrow">ORDERS</span><h2>Pending orders</h2></div>
+        <span className="muted-small">{pendingOrders.length} pending</span>
+      </div>
+      {pendingOrders.length ? <div className="demo-pending-list">{pendingOrders.map((order) => (
+        <article className="demo-pending-row" key={order.id}>
+          <button className="demo-pending-main" onClick={() => { setSelectedSymbol(order.symbol); onOpenPair(order.symbol); }}>
+            <div className="demo-position-head">
+              <strong>{order.symbol}</strong>
+              <b className={order.side === 'buy' ? 'position-long' : 'position-short'}>{order.side === 'buy' ? 'BUY' : 'SELL'} {order.type.toUpperCase()}</b>
+            </div>
+            <small>{order.units.toLocaleString()} units · Trigger {formatPriceValue(order.symbol, order.triggerPrice)}</small>
+            <small>{order.stopLoss !== undefined ? 'SL ' + formatPriceValue(order.symbol, order.stopLoss) : 'No SL'} · {order.takeProfit !== undefined ? 'TP ' + formatPriceValue(order.symbol, order.takeProfit) : 'No TP'}</small>
+          </button>
+          <button className="secondary-button demo-cancel-order" onClick={() => cancelPending(order)}>Cancel</button>
+        </article>
+      ))}</div> : (
+        <GlassPanel className="utility-empty compact"><strong>No pending orders</strong><p>Limit and stop orders stay here until the market reaches their trigger price.</p></GlassPanel>
+      )}
+      {pendingOrders.length > 1 && <button className="secondary-button demo-cancel-all" onClick={() => { setPendingOrders([]); setNotice('All pending orders cancelled.'); clearNoticeLater(); }}>Cancel all pending</button>}
+    </section>
+  );
+
+  const renderHistory = () => (
+    <section className="utility-section demo-section-card">
+      <div className="utility-section-head">
+        <div><span className="eyebrow">HISTORY</span><h2>Closed trades</h2></div>
+        <span className="muted-small">{history.length} total</span>
+      </div>
+      {history.length ? <div className="demo-history-list">{history.slice().reverse().map((trade) => (
+        <button className="demo-history-row demo-history-button" key={trade.id} onClick={() => { setSelectedSymbol(trade.symbol); onOpenPair(trade.symbol); }}>
+          <span><strong>{trade.symbol}</strong><small>{trade.side === 'buy' ? 'Long' : 'Short'} · {trade.orderType} · {trade.units.toLocaleString()} units · {new Date(trade.closedAt).toLocaleDateString()} {new Date(trade.closedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small></span>
+          <strong className={trade.pnl >= 0 ? 'positive' : 'negative'}>{trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}</strong>
+        </button>
+      ))}</div> : (
+        <GlassPanel className="utility-empty compact"><strong>No closed trades yet</strong><p>Once a position closes, its realised P/L and execution details will appear here.</p></GlassPanel>
+      )}
+    </section>
+  );
 
   return (
     <div className="utility-page demo-page">
@@ -507,6 +690,12 @@ export function DemoTrading({
         <GlassPanel><span>Exposure</span><strong>${openNotional.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong><small>{positions.length} open · {pendingOrders.length} pending</small></GlassPanel>
       </div>
 
+      <div className="demo-performance-strip">
+        <div><span>Average win</span><strong className="positive">{winningPnl.length ? '+' : ''}${averageWin.toFixed(2)}</strong></div>
+        <div><span>Average loss</span><strong className="negative">${averageLoss.toFixed(2)}</strong></div>
+        <div><span>Free margin</span><strong>${Math.max(0, freeMargin).toFixed(2)}</strong></div>
+      </div>
+
       {notice && <div className="demo-notice"><Icon name="spark" size={14} /><span>{notice}</span><button onClick={() => setNotice(null)} aria-label="Dismiss">×</button></div>}
 
       <div className="demo-live-banner">
@@ -514,110 +703,113 @@ export function DemoTrading({
         <button onClick={() => selected && onOpenPair(selected.symbol)}>Open chart <Icon name="arrow" size={14} /></button>
       </div>
 
-      <GlassPanel className="demo-ticket">
-        <div className="demo-ticket-header">
-          <div><span className="eyebrow">NEW ORDER</span><h2>Build an order</h2><p>Choose a market, order type, side and risk controls.</p></div>
-          <span className="demo-mode-pill">PAPER</span>
-        </div>
-
-        <div className="demo-order-types">
-          {(['market', 'limit', 'stop'] as DemoOrderType[]).map((type) => (
-            <button key={type} className={orderType === type ? 'active' : ''} onClick={() => setOrderType(type)}>
-              <strong>{type === 'market' ? 'Market' : type === 'limit' ? 'Limit' : 'Stop'}</strong>
-              <small>{type === 'market' ? 'Enter now' : type === 'limit' ? 'Enter better price' : 'Enter on breakout'}</small>
-            </button>
-          ))}
-        </div>
-
-        <div className="demo-pair-picker">{markets.map((pair) => (
-          <button key={pair.symbol} className={selected?.symbol === pair.symbol ? 'active' : ''} onClick={() => setSelectedSymbol(pair.symbol)}>
-            <span>{pair.symbol}</span>
-            <strong>{formatPrice(pair)}</strong>
-            <small className={pair.change24h >= 0 ? 'positive' : 'negative'}>{pair.change24h >= 0 ? '+' : ''}{pair.change24h.toFixed(2)}%</small>
+      <div className="demo-view-tabs" role="tablist" aria-label="Demo account sections">
+        {([
+          ['trade', 'Trade'],
+          ['positions', 'Positions'],
+          ['orders', 'Orders'],
+          ['history', 'History'],
+        ] as const).map(([id, label]) => (
+          <button key={id} className={demoView === id ? 'active' : ''} onClick={() => setDemoView(id)} role="tab" aria-selected={demoView === id}>
+            <span>{label}</span>
+            {id === 'positions' && <b>{positions.length}</b>}
+            {id === 'orders' && <b>{pendingOrders.length}</b>}
+            {id === 'history' && <b>{history.length}</b>}
           </button>
-        ))}</div>
+        ))}
+      </div>
 
-        {selected && <div className="demo-market-quote">
-          <div className="demo-market-quote-main">
-            <div><span>{selected.symbol}</span><strong>{formatPrice(selected)}</strong><small>Bid {formatPriceValue(selected.symbol, selected.bid ?? selected.price)} · Ask {formatPriceValue(selected.symbol, selected.ask ?? selected.price)}</small></div>
-            <MarketSparkline points={selected.sparkline} positive={selected.change24h >= 0} />
-          </div>
-          <div className="demo-bidask">
-            <div><span>Bid</span><strong>{formatPriceValue(selected.symbol, selected.bid ?? selected.price)}</strong></div>
-            <div><span>Ask</span><strong>{formatPriceValue(selected.symbol, selected.ask ?? selected.price)}</strong></div>
-            <div><span>24h</span><strong className={selected.change24h >= 0 ? 'positive' : 'negative'}>{selected.change24h >= 0 ? '+' : ''}{selected.change24h.toFixed(2)}%</strong></div>
-          </div>
-        </div>}
-
-        <div className="demo-side-toggle">
-          <button className={side === 'buy' ? 'buy active' : 'buy'} onClick={() => setSide('buy')}><span>BUY / LONG</span><small>Profit when price rises</small></button>
-          <button className={side === 'sell' ? 'sell active' : 'sell'} onClick={() => setSide('sell')}><span>SELL / SHORT</span><small>Profit when price falls</small></button>
-        </div>
-
-        <div className="demo-field-grid">
-          <label><span>Units</span><input inputMode="numeric" value={units} onChange={(event) => setUnits(event.target.value)} /></label>
-          <label className={orderType === 'market' ? 'field-disabled' : ''}><span>{orderType === 'market' ? 'Execution price' : 'Trigger price'}</span><input inputMode="decimal" value={orderType === 'market' ? (selected ? formatPriceValue(selected.symbol, executablePrice(selected, side)) : '') : entryPrice} onChange={(event) => setEntryPrice(event.target.value)} disabled={orderType === 'market'} placeholder={selected ? formatPrice(selected) : 'Price'} /></label>
-          <label><span>Leverage</span><select value={leverage} onChange={(event) => setLeverage(Number(event.target.value))}>{LEVERAGE_OPTIONS.map((value) => <option key={value} value={value}>1:{value}</option>)}</select></label>
-          <label><span>Stop loss</span><input inputMode="decimal" value={stopLoss} onChange={(event) => setStopLoss(event.target.value)} placeholder={selected ? formatPrice(selected) : 'Price'} /></label>
-          <label><span>Take profit</span><input inputMode="decimal" value={takeProfit} onChange={(event) => setTakeProfit(event.target.value)} placeholder={selected ? formatPrice(selected) : 'Price'} /></label>
-        </div>
-
-        <div className="demo-order-summary">
-          <div><span>Required margin</span><strong>${(() => {
-            const qty = Number(units);
-            const px = orderType === 'market' && selected ? executablePrice(selected, side) : normalizeNumber(entryPrice) ?? (selected ? selected.price : 0);
-            return Number.isFinite(qty) ? (Math.max(0, px * qty) / leverage).toFixed(2) : '0.00';
-          })()}</strong></div>
-          <div><span>Available</span><strong>${Math.max(0, freeMargin).toFixed(2)}</strong></div>
-        </div>
-
-        <button className={side === 'buy' ? 'demo-execute buy' : 'demo-execute sell'} onClick={placeOrder}>
-          <span>{orderType === 'market' ? (side === 'buy' ? 'Open Buy / Long' : 'Open Sell / Short') : (side === 'buy' ? 'Place Buy ' : 'Place Sell ') + orderType}</span>
-          <strong>{selected ? formatPrice(selected) : '—'}</strong>
-        </button>
-        <p className="demo-note"><Icon name="shield" size={13} /> Simulated only. Market orders use the current bid/ask; limit and stop orders remain pending until the price reaches the trigger.</p>
-      </GlassPanel>
-
-      <section className="utility-section">
-        <div className="utility-section-head"><div><span className="eyebrow">OPEN POSITIONS</span><h2>Active trades</h2></div><span className="muted-small">{positions.length} active</span></div>
-        {positions.length ? <div className="demo-position-list">{positions.map((position) => {
-          const current = markPrice(position);
-          const pnl = (position.side === 'buy' ? current - position.entryPrice : position.entryPrice - current) * position.units;
-          const pair = findPair(position.symbol);
-          const displayPrice = pair ? formatPriceValue(pair.symbol, current) : current.toFixed(priceDigits(position.symbol));
-          return <article className="demo-position-row" key={position.id}>
-            <button className="demo-position-main" onClick={() => onOpenPair(position.symbol)}>
-              <div className="demo-position-head"><span>{position.symbol}</span><b className={position.side === 'buy' ? 'position-long' : 'position-short'}>{position.side === 'buy' ? 'LONG' : 'SHORT'}</b><em>{position.orderType.toUpperCase()}</em></div>
-              <strong className={pnl >= 0 ? 'positive' : 'negative'}>{pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}</strong>
-              <small>{position.units.toLocaleString()} units · Entry {formatPriceValue(position.symbol, position.entryPrice)} · Now {displayPrice}</small>
-              <small>{position.stopLoss !== undefined ? 'SL $' + formatPriceValue(position.symbol, position.stopLoss) : 'No SL'} · {position.takeProfit !== undefined ? 'TP $' + formatPriceValue(position.symbol, position.takeProfit) : 'No TP'}</small>
+      {demoView === 'trade' && (
+        <>
+          <div className="demo-quote-actions">
+            <button className="demo-quote-action buy" onClick={() => { setSide('buy'); setOrderType('market'); }}>
+              <span>BUY</span><strong>${selected ? formatPriceValue(selected.symbol, selectedAsk) : '—'}</strong><small>Ask · {selected?.symbol ?? 'Market'}</small>
             </button>
-            <button className="demo-close-button" onClick={() => closePosition(position)} aria-label={'Close ' + position.symbol}>×</button>
-          </article>;
-        })}</div> : <GlassPanel className="utility-empty compact"><strong>No open positions</strong><p>Your account is flat. New market orders appear here immediately; pending orders wait below.</p></GlassPanel>}
-      </section>
+            <button className="demo-quote-action sell" onClick={() => { setSide('sell'); setOrderType('market'); }}>
+              <span>SELL</span><strong>${selected ? formatPriceValue(selected.symbol, selectedBid) : '—'}</strong><small>Bid · {selected?.symbol ?? 'Market'}</small>
+            </button>
+          </div>
 
-      <section className="utility-section">
-        <div className="utility-section-head"><div><span className="eyebrow">PENDING ORDERS</span><h2>Waiting to trigger</h2></div><span className="muted-small">{pendingOrders.length} pending</span></div>
-        {pendingOrders.length ? <div className="demo-pending-list">{pendingOrders.map((order) => (
-          <article className="demo-pending-row" key={order.id}>
-            <div>
-              <div className="demo-position-head"><strong>{order.symbol}</strong><b className={order.side === 'buy' ? 'position-long' : 'position-short'}>{order.side === 'buy' ? 'BUY' : 'SELL'} {order.type.toUpperCase()}</b></div>
-              <small>{order.units.toLocaleString()} units · Trigger {formatPriceValue(order.symbol, order.triggerPrice)}</small>
-              <small>{order.stopLoss !== undefined ? 'SL ' + formatPriceValue(order.symbol, order.stopLoss) : 'No SL'} · {order.takeProfit !== undefined ? 'TP ' + formatPriceValue(order.symbol, order.takeProfit) : 'No TP'}</small>
+          <GlassPanel className="demo-ticket">
+            <div className="demo-ticket-header">
+              <div><span className="eyebrow">NEW ORDER</span><h2>Build an order</h2><p>Choose a market, order type, side and risk controls.</p></div>
+              <span className="demo-mode-pill">PAPER</span>
             </div>
-            <button className="secondary-button" onClick={() => cancelPending(order)}>Cancel</button>
-          </article>
-        ))}</div> : <GlassPanel className="utility-empty compact"><strong>No pending orders</strong><p>Limit and stop orders will appear here until their trigger price is reached or you cancel them.</p></GlassPanel>}
-      </section>
 
-      <section className="utility-section">
-        <div className="utility-section-head"><div><span className="eyebrow">TRADE HISTORY</span><h2>Recent activity</h2></div><button className="text-button" onClick={resetDemo}>Reset account</button></div>
-        {history.length ? <div className="demo-history-list">{history.slice().reverse().slice(0, 10).map((trade) => <div className="demo-history-row" key={trade.id}>
-          <span><strong>{trade.symbol}</strong><small>{trade.side === 'buy' ? 'Long' : 'Short'} · {trade.orderType} · {trade.units.toLocaleString()} units · {new Date(trade.closedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small></span>
-          <strong className={trade.pnl >= 0 ? 'positive' : 'negative'}>{trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}</strong>
-        </div>)}</div> : <GlassPanel className="utility-empty compact"><strong>No closed trades yet</strong><p>Completed demo trades will appear here with realised P/L and execution details.</p></GlassPanel>}
-      </section>
+            <div className="demo-order-types">
+              {(['market', 'limit', 'stop'] as DemoOrderType[]).map((type) => (
+                <button key={type} className={orderType === type ? 'active' : ''} onClick={() => setOrderType(type)}>
+                  <strong>{type === 'market' ? 'Market' : type === 'limit' ? 'Limit' : 'Stop'}</strong>
+                  <small>{type === 'market' ? 'Enter now' : type === 'limit' ? 'Enter better price' : 'Enter on breakout'}</small>
+                </button>
+              ))}
+            </div>
+
+            <div className="demo-pair-picker">{markets.map((pair) => (
+              <button key={pair.symbol} className={selected?.symbol === pair.symbol ? 'active' : ''} onClick={() => setSelectedSymbol(pair.symbol)}>
+                <span>{pair.symbol}</span>
+                <strong>{formatPrice(pair)}</strong>
+                <small className={pair.change24h >= 0 ? 'positive' : 'negative'}>{pair.change24h >= 0 ? '+' : ''}{pair.change24h.toFixed(2)}%</small>
+              </button>
+            ))}</div>
+
+            {selected && <div className="demo-market-quote">
+              <div className="demo-market-quote-main">
+                <div><span>{selected.symbol}</span><strong>{formatPrice(selected)}</strong><small>Bid ${formatPriceValue(selected.symbol, selectedBid)} · Ask ${formatPriceValue(selected.symbol, selectedAsk)}</small></div>
+                <MarketSparkline points={selected.sparkline} positive={selected.change24h >= 0} />
+              </div>
+              <div className="demo-bidask">
+                <div><span>Bid</span><strong>${formatPriceValue(selected.symbol, selectedBid)}</strong></div>
+                <div><span>Ask</span><strong>${formatPriceValue(selected.symbol, selectedAsk)}</strong></div>
+                <div><span>24h</span><strong className={selected.change24h >= 0 ? 'positive' : 'negative'}>{selected.change24h >= 0 ? '+' : ''}{selected.change24h.toFixed(2)}%</strong></div>
+              </div>
+            </div>}
+
+            <div className="demo-side-toggle">
+              <button className={side === 'buy' ? 'buy active' : 'buy'} onClick={() => setSide('buy')}><span>BUY / LONG</span><small>Profit when price rises</small></button>
+              <button className={side === 'sell' ? 'sell active' : 'sell'} onClick={() => setSide('sell')}><span>SELL / SHORT</span><small>Profit when price falls</small></button>
+            </div>
+
+            <div className="demo-field-grid">
+              <label><span>Units</span><input inputMode="numeric" value={units} onChange={(event) => setUnits(event.target.value)} /></label>
+              <label className={orderType === 'market' ? 'field-disabled' : ''}><span>{orderType === 'market' ? 'Execution price' : 'Trigger price'}</span><input inputMode="decimal" value={orderType === 'market' ? (selected ? formatPriceValue(selected.symbol, executablePrice(selected, side)) : '') : entryPrice} onChange={(event) => setEntryPrice(event.target.value)} disabled={orderType === 'market'} placeholder={selected ? formatPrice(selected) : 'Price'} /></label>
+              <label><span>Leverage</span><select value={leverage} onChange={(event) => setLeverage(Number(event.target.value))}>{LEVERAGE_OPTIONS.map((value) => <option key={value} value={value}>1:{value}</option>)}</select></label>
+              <label><span>Stop loss</span><input inputMode="decimal" value={stopLoss} onChange={(event) => setStopLoss(event.target.value)} placeholder={selected ? formatPrice(selected) : 'Price'} /></label>
+              <label><span>Take profit</span><input inputMode="decimal" value={takeProfit} onChange={(event) => setTakeProfit(event.target.value)} placeholder={selected ? formatPrice(selected) : 'Price'} /></label>
+            </div>
+
+            <div className="demo-order-summary">
+              <div><span>Required margin</span><strong>${(() => {
+                const qty = Number(units);
+                const px = orderType === 'market' && selected ? executablePrice(selected, side) : normalizeNumber(entryPrice) ?? (selected ? selected.price : 0);
+                return Number.isFinite(qty) ? (Math.max(0, px * qty) / leverage).toFixed(2) : '0.00';
+              })()}</strong></div>
+              <div><span>Available</span><strong>${Math.max(0, freeMargin).toFixed(2)}</strong></div>
+            </div>
+
+            <button className={side === 'buy' ? 'demo-execute buy' : 'demo-execute sell'} onClick={placeOrder}>
+              <span>{orderType === 'market' ? (side === 'buy' ? 'Open Buy / Long' : 'Open Sell / Short') : (side === 'buy' ? 'Place Buy ' : 'Place Sell ') + orderType}</span>
+              <strong>{selected ? formatPrice(selected) : '—'}</strong>
+            </button>
+            <p className="demo-note"><Icon name="shield" size={13} /> Simulated only. Market orders use bid/ask; limit and stop orders wait for their trigger.</p>
+          </GlassPanel>
+        </>
+      )}
+
+      {demoView === 'positions' && renderPositions()}
+      {demoView === 'orders' && renderPendingOrders()}
+      {demoView === 'history' && (
+        <>
+          <div className="demo-history-analytics">
+            <GlassPanel><span>Net realised</span><strong className={realizedPnl >= 0 ? 'positive' : 'negative'}>{realizedPnl >= 0 ? '+' : ''}${realizedPnl.toFixed(2)}</strong></GlassPanel>
+            <GlassPanel><span>Win rate</span><strong>{history.length ? winRate.toFixed(0) + '%' : '—'}</strong></GlassPanel>
+            <GlassPanel><span>Avg win</span><strong className="positive">{winningPnl.length ? '+' : ''}${averageWin.toFixed(2)}</strong></GlassPanel>
+            <GlassPanel><span>Avg loss</span><strong className="negative">${averageLoss.toFixed(2)}</strong></GlassPanel>
+          </div>
+          {renderHistory()}
+        </>
+      )}
+
+      <p className="demo-disclaimer"><Icon name="shield" size={12} /> Demo funds are virtual. BerreX never sends these orders to a broker.</p>
     </div>
   );
-}
