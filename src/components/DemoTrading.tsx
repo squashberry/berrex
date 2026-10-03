@@ -96,6 +96,11 @@ export function DemoTrading({
   const [takeProfit, setTakeProfit] = useState('');
   const [leverage, setLeverage] = useState(DEFAULT_LEVERAGE);
   const [notice, setNotice] = useState<string | null>(null);
+  const [demoView, setDemoView] = useState<'trade' | 'positions' | 'orders' | 'history'>('trade');
+  const [managePositionId, setManagePositionId] = useState<string | null>(null);
+  const [editStopLoss, setEditStopLoss] = useState('');
+  const [editTakeProfit, setEditTakeProfit] = useState('');
+  const [partialUnits, setPartialUnits] = useState('');
 
   useEffect(() => {
     try {
@@ -447,6 +452,80 @@ export function DemoTrading({
     setNotice('Demo account reset to $10,000.');
     clearNoticeLater();
   };
+
+  const beginManagePosition = (position: DemoPosition) => {
+    setManagePositionId(position.id);
+    setEditStopLoss(position.stopLoss === undefined ? '' : String(position.stopLoss));
+    setEditTakeProfit(position.takeProfit === undefined ? '' : String(position.takeProfit));
+    setPartialUnits('');
+  };
+
+  const savePositionRisk = (position: DemoPosition) => {
+    const nextStop = normalizeNumber(editStopLoss);
+    const nextTarget = normalizeNumber(editTakeProfit);
+    const current = markPrice(position);
+
+    if (editStopLoss && nextStop === undefined) {
+      setNotice('Stop loss must be a valid price.');
+      clearNoticeLater();
+      return;
+    }
+    if (editTakeProfit && nextTarget === undefined) {
+      setNotice('Take profit must be a valid price.');
+      clearNoticeLater();
+      return;
+    }
+    if (nextStop !== undefined && (position.side === 'buy' ? nextStop >= current : nextStop <= current)) {
+      setNotice('Stop loss must remain on the loss side of the current price.');
+      clearNoticeLater();
+      return;
+    }
+    if (nextTarget !== undefined && (position.side === 'buy' ? nextTarget <= current : nextTarget >= current)) {
+      setNotice('Take profit must remain on the profit side of the current price.');
+      clearNoticeLater();
+      return;
+    }
+
+    setPositions((items) => items.map((item) => item.id === position.id ? {
+      ...item,
+      stopLoss: nextStop,
+      takeProfit: nextTarget,
+    } : item));
+    setNotice(position.symbol + ' risk levels updated.');
+    clearNoticeLater();
+    setManagePositionId(null);
+  };
+
+  const partialClose = (position: DemoPosition) => {
+    const quantity = Number(partialUnits);
+    if (!Number.isFinite(quantity) || quantity <= 0 || quantity >= position.units) {
+      setNotice('Enter a partial-close amount smaller than the open position.');
+      clearNoticeLater();
+      return;
+    }
+
+    const currentPrice = markPrice(position);
+    const pnl = (position.side === 'buy' ? currentPrice - position.entryPrice : position.entryPrice - currentPrice) * quantity;
+
+    setPositions((items) => items.map((item) => item.id === position.id ? { ...item, units: item.units - quantity } : item));
+    setBalance((currentBalance) => currentBalance + pnl);
+    setHistory((items) => [...items, {
+      id: position.id + ':partial:' + Date.now(),
+      symbol: position.symbol,
+      side: position.side,
+      units: quantity,
+      entryPrice: position.entryPrice,
+      exitPrice: currentPrice,
+      pnl,
+      openedAt: position.openedAt,
+      closedAt: Date.now(),
+      orderType: position.orderType,
+    }].slice(-60));
+    setNotice('Partially closed ' + position.symbol + ' for ' + (pnl >= 0 ? '+' : '') + pnl.toFixed(2) + ' USD.');
+    clearNoticeLater();
+    setManagePositionId(null);
+  };
+
 
   if (!enabled) {
     return (
