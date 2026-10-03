@@ -1,0 +1,268 @@
+import { useEffect, useMemo, useState } from 'react';
+import { GlassPanel } from './GlassPanel';
+import { MarketSparkline } from './MarketSparkline';
+import { Icon } from '../lib/icons';
+import type { MarketPair } from '../types';
+
+type DemoSide = 'buy' | 'sell';
+
+type DemoPosition = {
+  id: string;
+  symbol: string;
+  side: DemoSide;
+  units: number;
+  entryPrice: number;
+  stopLoss?: number;
+  takeProfit?: number;
+  openedAt: number;
+};
+
+type DemoTrade = {
+  id: string;
+  symbol: string;
+  side: DemoSide;
+  units: number;
+  entryPrice: number;
+  exitPrice: number;
+  pnl: number;
+  openedAt: number;
+  closedAt: number;
+};
+
+const START_BALANCE = 10000;
+const STORAGE_KEY = 'berrex-demo-account-v1';
+
+function priceDigits(symbol: string) {
+  return symbol === 'USD/JPY' || symbol === 'XAU/USD' ? 2 : 5;
+}
+
+function formatPrice(pair: MarketPair) {
+  return pair.price.toFixed(priceDigits(pair.symbol));
+}
+
+export function DemoTrading({ markets, enabled, onOpenPair }: { markets: MarketPair[]; enabled: boolean; onOpenPair: (symbol: string) => void }) {
+  const [balance, setBalance] = useState(START_BALANCE);
+  const [positions, setPositions] = useState<DemoPosition[]>([]);
+  const [history, setHistory] = useState<DemoTrade[]>([]);
+  const [selectedSymbol, setSelectedSymbol] = useState(markets[0]?.symbol ?? 'EUR/USD');
+  const [side, setSide] = useState<DemoSide>('buy');
+  const [units, setUnits] = useState('1000');
+  const [stopLoss, setStopLoss] = useState('');
+  const [takeProfit, setTakeProfit] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || 'null') as { balance?: number; positions?: DemoPosition[]; history?: DemoTrade[] } | null;
+      if (!saved) return;
+      if (Number.isFinite(saved.balance)) setBalance(Number(saved.balance));
+      if (Array.isArray(saved.positions)) setPositions(saved.positions);
+      if (Array.isArray(saved.history)) setHistory(saved.history);
+    } catch {
+      // Ignore malformed local demo data and start fresh.
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ balance, positions, history: history.slice(-40) }));
+  }, [balance, positions, history]);
+
+  const selected = markets.find((pair) => pair.symbol === selectedSymbol) ?? markets[0];
+
+  const markPrice = (position: DemoPosition) => markets.find((pair) => pair.symbol === position.symbol)?.price ?? position.entryPrice;
+
+  const unrealized = useMemo(
+    () => positions.reduce((sum, position) => {
+      const current = markPrice(position);
+      return sum + (position.side === 'buy' ? current - position.entryPrice : position.entryPrice - current) * position.units;
+    }, 0),
+    [markets, positions]
+  );
+
+  const equity = balance + unrealized;
+  const openNotional = positions.reduce((sum, position) => sum + markPrice(position) * position.units, 0);
+  const selectedPnl = selected ? positions
+    .filter((position) => position.symbol === selected.symbol)
+    .reduce((sum, position) => {
+      const current = selected.price;
+      return sum + (position.side === 'buy' ? current - position.entryPrice : position.entryPrice - current) * position.units;
+    }, 0) : 0;
+
+  useEffect(() => {
+    if (!positions.length) return;
+    const toClose: Array<{ position: DemoPosition; exitPrice: number; pnl: number }> = [];
+    for (const position of positions) {
+      const current = markPrice(position);
+      const hitStop = position.stopLoss !== undefined && (position.side === 'buy' ? current <= position.stopLoss : current >= position.stopLoss);
+      const hitTarget = position.takeProfit !== undefined && (position.side === 'buy' ? current >= position.takeProfit : current <= position.takeProfit);
+      if (hitStop || hitTarget) {
+        const pnl = (position.side === 'buy' ? current - position.entryPrice : position.entryPrice - current) * position.units;
+        toClose.push({ position, exitPrice: current, pnl });
+      }
+    }
+    if (!toClose.length) return;
+    setPositions((current) => current.filter((position) => !toClose.some((closed) => closed.position.id === position.id)));
+    setBalance((current) => current + toClose.reduce((sum, item) => sum + item.pnl, 0));
+    setHistory((current) => [...current, ...toClose.map(({ position, exitPrice, pnl }) => ({
+      id: position.id,
+      symbol: position.symbol,
+      side: position.side,
+      units: position.units,
+      entryPrice: position.entryPrice,
+      exitPrice,
+      pnl,
+      openedAt: position.openedAt,
+      closedAt: Date.now(),
+    }))].slice(-40));
+    setNotice(`${toClose.length} demo position${toClose.length === 1 ? '' : 's'} closed by a risk level.`);
+  }, [markets]);
+
+  const openDemoPosition = () => {
+    if (!selected || !enabled) return;
+    const quantity = Number(units);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setNotice('Enter a valid unit size.');
+      return;
+    }
+    const stop = stopLoss ? Number(stopLoss) : undefined;
+    const target = takeProfit ? Number(takeProfit) : undefined;
+    if (stop !== undefined && (!Number.isFinite(stop) || stop <= 0)) {
+      setNotice('Stop loss must be a valid price.');
+      return;
+    }
+    if (target !== undefined && (!Number.isFinite(target) || target <= 0)) {
+      setNotice('Take profit must be a valid price.');
+      return;
+    }
+
+    const orderNotional = selected.price * quantity;
+    if (orderNotional > Math.max(50000, equity * 10)) {
+      setNotice('That demo order is larger than the simulator risk limit.');
+      return;
+    }
+
+    const next: DemoPosition = {
+      id: crypto.randomUUID(),
+      symbol: selected.symbol,
+      side,
+      units: quantity,
+      entryPrice: selected.price,
+      stopLoss: stop,
+      takeProfit: target,
+      openedAt: Date.now(),
+    };
+    setPositions((current) => [next, ...current]);
+    setNotice(`${side === 'buy' ? 'Bought' : 'Sold'} ${quantity.toLocaleString()} ${selected.symbol} at ${formatPrice(selected)}.`);
+  };
+
+  const closePosition = (position: DemoPosition) => {
+    const currentPrice = markPrice(position);
+    const pnl = (position.side === 'buy' ? currentPrice - position.entryPrice : position.entryPrice - currentPrice) * position.units;
+    setPositions((current) => current.filter((item) => item.id !== position.id));
+    setBalance((current) => current + pnl);
+    setHistory((current) => [...current, {
+      id: position.id,
+      symbol: position.symbol,
+      side: position.side,
+      units: position.units,
+      entryPrice: position.entryPrice,
+      exitPrice: currentPrice,
+      pnl,
+      openedAt: position.openedAt,
+      closedAt: Date.now(),
+    }].slice(-40));
+    setNotice(`Closed ${position.symbol} for ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} USD.`);
+  };
+
+  const resetDemo = () => {
+    setBalance(START_BALANCE);
+    setPositions([]);
+    setHistory([]);
+    setNotice('Demo account reset to $10,000.');
+  };
+
+  if (!enabled) {
+    return (
+      <div className="utility-page">
+        <div className="page-header"><span className="eyebrow">DEMO TRADING</span><h1>Demo is off.</h1><p className="subtle">Turn demo trading back on from Settings when you want to practice with virtual money.</p></div>
+        <GlassPanel className="utility-empty">
+          <div className="utility-icon"><Icon name="chart" size={22} /></div>
+          <strong>Practice without real money</strong>
+          <p>When enabled, BerreX uses the same market prices shown around the app to simulate entries, positions and profit/loss locally on this device.</p>
+        </GlassPanel>
+      </div>
+    );
+  }
+
+  return (
+    <div className="utility-page demo-page">
+      <div className="page-header">
+        <span className="eyebrow">BERREX DEMO</span>
+        <h1>Trade with live prices.</h1>
+        <p className="subtle">Virtual money only. Quotes follow the BerreX market feed; no order is sent to a broker.</p>
+      </div>
+
+      <div className="demo-live-banner">
+        <span><span className="live-dot" /> {markets.some((pair) => pair.timestamp) ? 'Market feed connected' : 'Using current BerreX feed'}</span>
+        <button onClick={() => selected && onOpenPair(selected.symbol)}>Open chart <Icon name="arrow" size={14} /></button>
+      </div>
+
+      <div className="demo-account-grid">
+        <GlassPanel className="demo-account-card primary">
+          <span>Equity</span><strong>${equity.toFixed(2)}</strong><small>{unrealized >= 0 ? '+' : ''}{unrealized.toFixed(2)} unrealized</small>
+        </GlassPanel>
+        <GlassPanel className="demo-account-card">
+          <span>Balance</span><strong>${balance.toFixed(2)}</strong><small>Starting balance $10,000</small>
+        </GlassPanel>
+        <GlassPanel className="demo-account-card">
+          <span>Open P/L</span><strong className={unrealized >= 0 ? 'positive' : 'negative'}>{unrealized >= 0 ? '+' : ''}${unrealized.toFixed(2)}</strong><small>{positions.length} open position{positions.length === 1 ? '' : 's'}</small>
+        </GlassPanel>
+        <GlassPanel className="demo-account-card">
+          <span>Open notional</span><strong>${openNotional.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong><small>Simulator only</small>
+        </GlassPanel>
+      </div>
+
+      <GlassPanel className="demo-ticket">
+        <div className="utility-section-head"><div><span className="eyebrow">ORDER TICKET</span><h2>Practice a trade</h2></div><span className="demo-mode-pill">PAPER</span></div>
+        <div className="demo-pair-picker">{markets.map((pair) => (
+          <button key={pair.symbol} className={selected?.symbol === pair.symbol ? 'active' : ''} onClick={() => setSelectedSymbol(pair.symbol)}>
+            <span>{pair.symbol}</span><strong className={pair.change24h >= 0 ? 'positive' : 'negative'}>{pair.change24h >= 0 ? '+' : ''}{pair.change24h.toFixed(2)}%</strong>
+          </button>
+        ))}</div>
+        {selected && <div className="demo-quote-card">
+          <div><span>{selected.symbol}</span><strong>{formatPrice(selected)}</strong></div>
+          <MarketSparkline points={selected.sparkline} positive={selected.change24h >= 0} />
+          <small>Current simulated trade price · {selectedPnl >= 0 ? '+' : ''}{selectedPnl.toFixed(2)} open P/L on this pair</small>
+        </div>}
+        <div className="demo-side-toggle"><button className={side === 'buy' ? 'buy active' : 'buy'} onClick={() => setSide('buy')}>Buy / Long</button><button className={side === 'sell' ? 'sell active' : 'sell'} onClick={() => setSide('sell')}>Sell / Short</button></div>
+        <div className="demo-field-grid">
+          <label>Units<input inputMode="numeric" value={units} onChange={(e) => setUnits(e.target.value)} /></label>
+          <label>Stop loss<input inputMode="decimal" value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} placeholder={selected ? formatPrice(selected) : 'Price'} /></label>
+          <label>Take profit<input inputMode="decimal" value={takeProfit} onChange={(e) => setTakeProfit(e.target.value)} placeholder={selected ? formatPrice(selected) : 'Price'} /></label>
+        </div>
+        <button className={side === 'buy' ? 'demo-execute buy' : 'demo-execute sell'} onClick={openDemoPosition}>{side === 'buy' ? 'Open demo buy' : 'Open demo sell'} <span>{selected ? formatPrice(selected) : '—'}</span></button>
+        <p className="demo-note"><Icon name="shield" size={13} /> All positions are local simulations. They have no cash value and cannot be withdrawn or sent to Exness.</p>
+      </GlassPanel>
+
+      <section className="utility-section">
+        <div className="utility-section-head"><div><span className="eyebrow">POSITIONS</span><h2>Open trades</h2></div><span className="muted-small">{positions.length} live</span></div>
+        {positions.length ? <div className="demo-position-list">{positions.map((position) => {
+          const current = markPrice(position);
+          const pnl = (position.side === 'buy' ? current - position.entryPrice : position.entryPrice - current) * position.units;
+          return <article className="demo-position-row" key={position.id}>
+            <button className="demo-position-main" onClick={() => onOpenPair(position.symbol)}>
+              <span>{position.symbol}</span><strong className={pnl >= 0 ? 'positive' : 'negative'}>{pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}</strong>
+              <small>{position.side === 'buy' ? 'Long' : 'Short'} · {position.units.toLocaleString()} units · {formatPrice(markets.find((pair) => pair.symbol === position.symbol) ?? { ...position, price: current } as MarketPair)}</small>
+            </button>
+            <button className="demo-close-button" onClick={() => closePosition(position)} aria-label={`Close ${position.symbol}`}>×</button>
+          </article>;
+        })}</div> : <GlassPanel className="utility-empty compact"><strong>No open trades</strong><p>Use the ticket above to practice a live-price entry.</p></GlassPanel>}
+      </section>
+
+      <section className="utility-section">
+        <div className="utility-section-head"><div><span className="eyebrow">RECENT RESULTS</span><h2>Trade history</h2></div><button className="text-button" onClick={resetDemo}>Reset account</button></div>
+        {history.length ? <div className="demo-history-list">{history.slice().reverse().slice(0, 8).map((trade) => <div className="demo-history-row" key={trade.id + trade.closedAt}><span>{trade.symbol}<small>{trade.side === 'buy' ? 'Long' : 'Short'} · {trade.units.toLocaleString()} units</small></span><strong className={trade.pnl >= 0 ? 'positive' : 'negative'}>{trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}</strong></div>)}</div> : <GlassPanel className="utility-empty compact"><strong>Nothing closed yet</strong><p>Close a position to start building a local demo history.</p></GlassPanel>}
+      </section>
+    </div>
+  );
+}
