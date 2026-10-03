@@ -249,10 +249,12 @@ export function DemoTrading({ markets, enabled, onOpenPair }: { markets: MarketP
         {positions.length ? <div className="demo-position-list">{positions.map((position) => {
           const current = markPrice(position);
           const pnl = (position.side === 'buy' ? current - position.entryPrice : position.entryPrice - current) * position.units;
+          const pair = markets.find((item) => item.symbol === position.symbol);
+          const displayPrice = pair ? formatPrice(pair) : current.toFixed(priceDigits(position.symbol));
           return <article className="demo-position-row" key={position.id}>
             <button className="demo-position-main" onClick={() => onOpenPair(position.symbol)}>
               <span>{position.symbol}</span><strong className={pnl >= 0 ? 'positive' : 'negative'}>{pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}</strong>
-              <small>{position.side === 'buy' ? 'Long' : 'Short'} · {position.units.toLocaleString()} units · {formatPrice(markets.find((pair) => pair.symbol === position.symbol) ?? { ...position, price: current } as MarketPair)}</small>
+              <small>{position.side === 'buy' ? 'Long' : 'Short'} · {position.units.toLocaleString()} units · {displayPrice}</small>
             </button>
             <button className="demo-close-button" onClick={() => closePosition(position)} aria-label={`Close ${position.symbol}`}>×</button>
           </article>;
