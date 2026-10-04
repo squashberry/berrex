@@ -78,10 +78,12 @@ export function DemoTrading({
   markets,
   enabled,
   onOpenPair,
+  live,
 }: {
   markets: MarketPair[];
   enabled: boolean;
   onOpenPair: (symbol: string) => void;
+  live: boolean;
 }) {
   const [balance, setBalance] = useState(START_BALANCE);
   const [positions, setPositions] = useState<DemoPosition[]>([]);
@@ -409,6 +411,41 @@ export function DemoTrading({
     clearNoticeLater();
   };
 
+  const closeAllPositions = () => {
+    if (!positions.length) {
+      setNotice('There are no open demo trades to close.');
+      clearNoticeLater();
+      return;
+    }
+    if (!window.confirm('Close all ' + positions.length + ' open demo trade' + (positions.length === 1 ? '' : 's') + ' at the current market prices?')) return;
+
+    const closedAt = Date.now();
+    const results = positions.map((position) => {
+      const currentPrice = markPrice(position);
+      const pnl = (position.side === 'buy' ? currentPrice - position.entryPrice : position.entryPrice - currentPrice) * position.units;
+      return {
+        id: position.id + ':all:' + closedAt,
+        symbol: position.symbol,
+        side: position.side,
+        units: position.units,
+        entryPrice: position.entryPrice,
+        exitPrice: currentPrice,
+        pnl,
+        openedAt: position.openedAt,
+        closedAt,
+        orderType: position.orderType,
+      };
+    });
+
+    const totalPnl = results.reduce((sum, trade) => sum + trade.pnl, 0);
+    setPositions([]);
+    setBalance((current) => current + totalPnl);
+    setHistory((current) => [...current, ...results].slice(-60));
+    setManagePositionId(null);
+    setNotice('Closed all ' + results.length + ' demo trade' + (results.length === 1 ? '' : 's') + ' for ' + (totalPnl >= 0 ? '+' : '') + totalPnl.toFixed(2) + ' USD.');
+    clearNoticeLater();
+  };
+
   const closePosition = (position: DemoPosition) => {
     const currentPrice = markPrice(position);
     const pnl =
@@ -598,7 +635,10 @@ export function DemoTrading({
     <section className="utility-section demo-section-card">
       <div className="utility-section-head">
         <div><span className="eyebrow">POSITIONS</span><h2>Active trades</h2></div>
-        <span className="muted-small">{positions.length} active</span>
+        <div className="demo-section-actions">
+          <span className="muted-small">{positions.length} active</span>
+          {positions.length > 0 && <button className="demo-close-all" onClick={closeAllPositions}>Close all</button>}
+        </div>
       </div>
       {positions.length ? <div className="demo-position-list">{positions.map(renderPosition)}</div> : (
         <GlassPanel className="utility-empty compact"><strong>No open positions</strong><p>Your account is flat. Open a market order from the Trade tab to see it here.</p></GlassPanel>
@@ -698,8 +738,8 @@ export function DemoTrading({
 
       {notice && <div className="demo-notice"><Icon name="spark" size={14} /><span>{notice}</span><button onClick={() => setNotice(null)} aria-label="Dismiss">×</button></div>}
 
-      <div className="demo-live-banner">
-        <span><span className="live-dot" /> {markets.some((pair) => pair.timestamp) ? 'Market feed connected' : 'Using current BerreX feed'}</span>
+      <div className={live ? "demo-live-banner" : "demo-live-banner offline"}>
+        <span><span className="live-dot" /> {live ? 'Live market feed connected' : 'Demo prices are not live right now'}</span>
         <button onClick={() => selected && onOpenPair(selected.symbol)}>Open chart <Icon name="arrow" size={14} /></button>
       </div>
 
@@ -721,6 +761,8 @@ export function DemoTrading({
 
       {demoView === 'trade' && (
         <>
+          {positions.length > 0 && <div className="demo-active-trade-strip"><span><b>{positions.length}</b> open demo trades</span><button onClick={() => setDemoView('positions')}>Manage positions</button><button className="danger" onClick={closeAllPositions}>Close all</button></div>}
+
           <div className="demo-quote-actions">
             <button className="demo-quote-action buy" onClick={() => { setSide('buy'); setOrderType('market'); }}>
               <span>BUY</span><strong>${selected ? formatPriceValue(selected.symbol, selectedAsk) : '—'}</strong><small>Ask · {selected?.symbol ?? 'Market'}</small>

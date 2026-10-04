@@ -37,7 +37,10 @@ jobs:
 
       - name: Build
         env:
-          VITE_MARKET_API_URL: ${{ vars.VITE_MARKET_API_URL }}
+          VITE_MARKET_API_URL: ${{ vars.VITE_MARKET_API_URL || secrets.VITE_MARKET_API_URL }}
+          VITE_MARKET_WS_URL: ${{ vars.VITE_MARKET_WS_URL || secrets.VITE_MARKET_WS_URL }}
+          VITE_FMP_API_KEY: ${{ vars.VITE_FMP_API_KEY || secrets.VITE_FMP_API_KEY }}
+          VITE_TWELVEDATA_API_KEY: ${{ vars.VITE_TWELVEDATA_API_KEY || secrets.VITE_TWELVEDATA_API_KEY }}
         run: npm run build
 
       - name: Upload Pages artifact

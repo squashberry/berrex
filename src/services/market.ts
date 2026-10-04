@@ -69,6 +69,11 @@ export async function fetchLiveNews(): Promise<NewsItem[]> {
 }
 
 export async function fetchEconomicCalendar(): Promise<EconomicEvent[]> {
+  if (MARKET_API_URL) {
+    const response = await fetch(MARKET_API_URL + '/calendar');
+    if (!response.ok) throw new Error('BerreX calendar proxy failed: ' + response.status);
+    return await response.json() as EconomicEvent[];
+  }
   if (!FMP_KEY) return [];
   const from = new Date();
   const to = new Date(Date.now() + 7 * 86400000);
@@ -146,6 +151,12 @@ export async function fetchCandleSeries(symbol: string, timeframe: Timeframe): P
 }
 
 export async function fetchTwelveSeries(symbol: string): Promise<number[]> {
+  if (MARKET_API_URL) {
+    const response = await fetch(MARKET_API_URL + '/candles?symbol=' + encodeURIComponent(symbol.replace('/', '')) + '&timeframe=1h');
+    if (!response.ok) throw new Error('BerreX candle proxy failed: ' + response.status);
+    const candles = await response.json() as Array<{ close?: number }>;
+    return candles.map((candle) => Number(candle.close)).filter(Number.isFinite).slice(-48);
+  }
   if (!TWELVE_KEY) return [];
   const response = await fetch(`https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=1h&outputsize=48&apikey=${encodeURIComponent(TWELVE_KEY)}`);
   if (!response.ok) throw new Error(`Twelve Data request failed: ${response.status}`);
