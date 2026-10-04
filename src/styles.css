@@ -1069,3 +1069,9 @@ button{-webkit-tap-highlight-color:transparent}
   .brand-mark{font-size:20px}
   .demo-active-trade-strip button{padding-inline:8px}
 }
+
+
+.feed-offline{color:var(--red)!important;background:color-mix(in srgb,var(--red) 8%,var(--surface-soft))!important}
+.feed-offline .live-dot{background:var(--red);box-shadow:0 0 0 4px color-mix(in srgb,var(--red) 12%,transparent)}
+.demo-live-banner.offline{border-color:color-mix(in srgb,var(--red) 24%,var(--line));background:color-mix(in srgb,var(--red) 5%,var(--surface-soft))}
+.demo-live-banner.offline .live-dot{background:var(--red);box-shadow:0 0 0 4px color-mix(in srgb,var(--red) 11%,transparent)}
