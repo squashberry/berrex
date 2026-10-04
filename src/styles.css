@@ -1009,3 +1009,63 @@ button{-webkit-tap-highlight-color:transparent}
   .demo-manager-actions>*{width:100%}
   .demo-history-analytics{grid-template-columns:1fr 1fr}
 }
+
+
+/* Final branding + demo bulk-action polish */
+.brand-mark{font-size:30px;line-height:1;font-weight:790;letter-spacing:-.07em}
+.brand-mark-button{min-height:44px;display:inline-flex;align-items:center}
+.demo-section-actions{display:flex;align-items:center;gap:9px}
+.demo-close-all{
+  min-height:32px;
+  padding:0 10px;
+  border:1px solid color-mix(in srgb,var(--red) 28%,var(--line));
+  border-radius:10px;
+  background:color-mix(in srgb,var(--red) 7%,var(--surface));
+  color:var(--red);
+  font-size:8px;
+  font-weight:900;
+  cursor:pointer;
+}
+.demo-close-all:hover{background:color-mix(in srgb,var(--red) 12%,var(--surface))}
+.demo-active-trade-strip{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-height:42px;
+  padding:6px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:var(--surface-soft);
+}
+.demo-active-trade-strip>span{
+  flex:1;
+  min-width:0;
+  padding-left:6px;
+  color:var(--muted);
+  font-size:9px;
+}
+.demo-active-trade-strip>span b{color:var(--text)}
+.demo-active-trade-strip button{
+  min-height:30px;
+  padding:0 9px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:var(--surface);
+  color:var(--text);
+  font-size:8px;
+  font-weight:820;
+  cursor:pointer;
+}
+.demo-active-trade-strip button.danger{color:var(--red);border-color:color-mix(in srgb,var(--red) 26%,var(--line))}
+@media (max-width:760px){
+  .brand-mark{font-size:21px}
+  .brand-mark-button{min-height:42px}
+  .demo-section-actions{gap:6px}
+  .demo-close-all{min-height:34px;padding-inline:9px}
+  .demo-active-trade-strip{overflow:auto}
+  .demo-active-trade-strip>span{white-space:nowrap}
+}
+@media (max-width:420px){
+  .brand-mark{font-size:20px}
+  .demo-active-trade-strip button{padding-inline:8px}
+}
