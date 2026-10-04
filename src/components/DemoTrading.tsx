@@ -78,10 +78,12 @@ export function DemoTrading({
   markets,
   enabled,
   onOpenPair,
+  live,
 }: {
   markets: MarketPair[];
   enabled: boolean;
   onOpenPair: (symbol: string) => void;
+  live: boolean;
 }) {
   const [balance, setBalance] = useState(START_BALANCE);
   const [positions, setPositions] = useState<DemoPosition[]>([]);
@@ -736,8 +738,8 @@ export function DemoTrading({
 
       {notice && <div className="demo-notice"><Icon name="spark" size={14} /><span>{notice}</span><button onClick={() => setNotice(null)} aria-label="Dismiss">×</button></div>}
 
-      <div className="demo-live-banner">
-        <span><span className="live-dot" /> {markets.some((pair) => pair.timestamp) ? 'Market feed connected' : 'Using current BerreX feed'}</span>
+      <div className={live ? "demo-live-banner" : "demo-live-banner offline"}>
+        <span><span className="live-dot" /> {live ? 'Live market feed connected' : 'Demo prices are not live right now'}</span>
         <button onClick={() => selected && onOpenPair(selected.symbol)}>Open chart <Icon name="arrow" size={14} /></button>
       </div>
 
