@@ -28,6 +28,7 @@ const PROMOS: Promo[] = [
 
 const EXNESS_URL = import.meta.env.VITE_EXNESS_REFERRAL_URL || 'https://www.exness.com/';
 const API_ENABLED = Boolean(import.meta.env.VITE_MARKET_API_URL || import.meta.env.VITE_FMP_API_KEY || import.meta.env.VITE_TWELVEDATA_API_KEY);
+type MarketConnectionStatus = 'preview' | 'connecting' | 'live' | 'offline';
 
 function formatPrice(pair: MarketPair) {
   return pair.price.toFixed(pair.symbol === 'USD/JPY' || pair.symbol === 'XAU/USD' ? 2 : 5);
@@ -113,6 +114,7 @@ export default function App() {
   const [converted, setConverted] = useState<number | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [lastSync, setLastSync] = useState<number | undefined>();
+  const [marketStatus, setMarketStatus] = useState<MarketConnectionStatus>(API_ENABLED ? 'connecting' : 'preview');
   const [marketFilter, setMarketFilter] = useState<'All' | 'Majors' | 'Metals' | 'Favorites'>('All');
   const [toolsOpen, setToolsOpen] = useState(false);
   const [showFloatingTools, setShowFloatingTools] = useState(false);
@@ -211,6 +213,7 @@ export default function App() {
     let cancelled = false;
     const load = async () => {
       setLoadingData(true);
+      setMarketStatus(API_ENABLED ? 'connecting' : 'preview');
       const [marketsResult, newsResult, calendarResult] = await Promise.allSettled([
         fetchLiveMarkets(INITIAL_MARKETS),
         fetchLiveNews(),
@@ -220,8 +223,12 @@ export default function App() {
       if (marketsResult.status === 'fulfilled') {
         setMarkets(marketsResult.value);
         setLastSync(Date.now() / 1000);
+        setMarketStatus(API_ENABLED ? 'live' : 'preview');
+      } else if (API_ENABLED) {
+        setMarketStatus('offline');
       } else {
         setMarkets((current) => simulatedTick(current));
+        setMarketStatus('preview');
       }
       if (newsResult.status === 'fulfilled' && newsResult.value.length) setNews(newsResult.value);
       if (calendarResult.status === 'fulfilled' && calendarResult.value.length) setEvents(calendarResult.value);
@@ -233,6 +240,7 @@ export default function App() {
       if (!payload || typeof payload !== 'object') return;
       const row = payload as { symbol?: string; price?: number; bid?: number; ask?: number; change24h?: number; changePercentage?: number; timestamp?: number };
       if (!row.symbol || !Number.isFinite(Number(row.price))) return;
+      setMarketStatus('live');
       const normalized = row.symbol.toUpperCase().replace('/', '');
       setMarkets(current => current.map(pair => {
         if (pair.symbol.replace('/', '').toUpperCase() !== normalized) return pair;
@@ -253,8 +261,9 @@ export default function App() {
           if (cancelled) return;
           setMarkets(fresh);
           setLastSync(Date.now() / 1000);
+          setMarketStatus('live');
         })
-        .catch(() => undefined);
+        .catch(() => setMarketStatus('offline'));
     }, 15000);
 
     const slowId = window.setInterval(() => {
@@ -352,8 +361,8 @@ export default function App() {
 
       <GlassPanel className="hero-card">
         <div className="hero-topline">
-          <span className="live-pill"><span className="live-dot" /> {API_ENABLED ? 'Live market feed' : 'Preview feed'}</span>
-          <span className="timestamp">{lastSync ? formatAge(lastSync) : API_ENABLED ? 'Connecting…' : 'Simulated market'}</span>
+          <span className={marketStatus === 'live' ? 'live-pill' : marketStatus === 'offline' ? 'live-pill feed-offline' : 'live-pill'}><span className="live-dot" /> {marketStatus === 'live' ? 'Live market feed' : marketStatus === 'offline' ? 'Market feed offline' : marketStatus === 'connecting' ? 'Connecting to markets…' : 'Preview feed'}</span>
+          <span className="timestamp">{lastSync ? formatAge(lastSync) : marketStatus === 'preview' ? 'Simulated market' : 'Connecting…'}</span>
         </div>
         <div className="hero-symbol">
           <div><span className="section-kicker">FOCUS PAIR</span><h2>{selected.symbol}</h2></div>
@@ -436,7 +445,7 @@ export default function App() {
         {activeTab === 'markets' && renderMarkets()}
         {activeTab === 'news' && renderNews()}
         {activeTab === 'lab' && <MarketLab markets={markets} events={events} news={news} favoriteSymbols={favoriteSymbols} onToggleFavorite={toggleFavorite} onOpenPair={openPair} onRefresh={() => { setLoadingData(true); void fetchLiveMarkets(markets).then(setMarkets).finally(() => setLoadingData(false)); }} />}
-        {activeTab === 'demo' && <DemoTrading markets={markets} enabled={demoEnabled} onOpenPair={openPair} />}
+        {activeTab === 'demo' && <DemoTrading markets={markets} enabled={demoEnabled} onOpenPair={openPair} live={marketStatus === 'live'} />}
         {activeTab === 'learn' && <LearnForex onOpenDemo={() => setActiveTab('demo')} />}
         {activeTab === 'profile' && renderProfile()}
       </main>
