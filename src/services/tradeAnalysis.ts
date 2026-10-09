@@ -159,7 +159,8 @@ export async function analyseTrade(pair: MarketPair, live: boolean): Promise<Tra
             entry = roundPrice(modelEntry as number, pair);
             stopLoss = roundPrice(modelStop as number, pair);
             takeProfit = roundPrice(modelTarget as number, pair);
-          } else if (modelSide !== technical.side) {
+          }
+          if (modelSide !== technical.side) {
             action = 'WAIT';
             reasons.unshift('The model direction differs from the local price-action read; wait for confirmation.');
           }
@@ -167,7 +168,7 @@ export async function analyseTrade(pair: MarketPair, live: boolean): Promise<Tra
 
         const rawAction = String(data.action ?? data.signal ?? '').toUpperCase().replace(/[ -]/g, '_');
         if (rawAction.includes('WAIT') || rawAction.includes('NO_TRADE') || rawAction.includes('NO_SETUP')) action = 'WAIT';
-        else if ((rawAction.includes('TRADE_NOW') || rawAction === 'BUY' || rawAction === 'SELL') && live && modelSide) action = 'TRADE_NOW';
+        else if ((rawAction.includes('TRADE_NOW') || rawAction === 'BUY' || rawAction === 'SELL') && live && modelSide) action = modelSide === technical.side ? 'TRADE_NOW' : 'WAIT';
 
         const modelConfidence = readNumber(data.confidence ?? data.signalStrength);
         if (modelConfidence !== null) confidence = Math.max(1, Math.min(99, Math.round(modelConfidence)));
@@ -190,6 +191,10 @@ export async function analyseTrade(pair: MarketPair, live: boolean): Promise<Tra
   }
   if (!live) action = 'WAIT';
 
+  const riskDistance = Math.abs(entry - stopLoss);
+  const rewardDistance = Math.abs(takeProfit - entry);
+  const riskReward = riskDistance > 0 ? Number((rewardDistance / riskDistance).toFixed(1)) : 1.8;
+
   return {
     symbol: pair.symbol,
     action,
@@ -197,7 +202,7 @@ export async function analyseTrade(pair: MarketPair, live: boolean): Promise<Tra
     entry,
     stopLoss,
     takeProfit,
-    riskReward: 1.8,
+    riskReward,
     confidence,
     timeframe: '5–15 min',
     createdAt,
