@@ -118,7 +118,7 @@ export function TradeAnalysisModal({ pair, live, onClose, onOpenPair }: Props) {
             <div className="trade-analysis-reasons"><div className="section-kicker">WHY THIS SETUP</div>{result.reasons.map((reason, index) => <div className="trade-reason" key={index}><span>{index + 1}</span><p>{reason}</p></div>)}</div>
             {result.commentary && <div className="trade-ai-commentary"><div className="section-kicker"><Icon name="spark" size={14} /> MODEL COMMENTARY</div><p>{result.commentary}</p></div>}
             <div className="trade-analysis-disclaimer"><Icon name="shield" size={14} /> Analysis only — no orders are placed. Signal strength is not a probability of profit. SL/TP estimates can fail during volatility or slippage.</div>
-            <div className="trade-analysis-actions"><button className="secondary-button" onClick={() => setRunId((value) => value + 1)}><Icon name="refresh" size={15} /> Analyse again</button><button className="primary-button" onClick={onOpenPair}>Open pair chart <Icon name="arrow" size={15} /></button></div>
+            <div className="trade-analysis-actions"><button className="secondary-button" onClick={() => setRunId((value) => value + 1)}><span aria-hidden="true">↻</span> Analyse again</button><button className="primary-button" onClick={onOpenPair}>Open pair chart <Icon name="arrow" size={15} /></button></div>
           </>
         )}
       </section>
