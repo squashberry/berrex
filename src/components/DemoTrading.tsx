@@ -855,3 +855,4 @@ export function DemoTrading({
       <p className="demo-disclaimer"><Icon name="shield" size={12} /> Demo funds are virtual. BerreX never sends these orders to a broker.</p>
     </div>
   );
+}
