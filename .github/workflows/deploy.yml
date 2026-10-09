@@ -41,6 +41,7 @@ jobs:
           VITE_MARKET_WS_URL: ${{ vars.VITE_MARKET_WS_URL || secrets.VITE_MARKET_WS_URL }}
           VITE_FMP_API_KEY: ${{ vars.VITE_FMP_API_KEY || secrets.VITE_FMP_API_KEY }}
           VITE_TWELVEDATA_API_KEY: ${{ vars.VITE_TWELVEDATA_API_KEY || secrets.VITE_TWELVEDATA_API_KEY }}
+          VITE_AI_ENDPOINT: ${{ vars.VITE_AI_ENDPOINT || secrets.VITE_AI_ENDPOINT }}
         run: npm run build
 
       - name: Upload Pages artifact
