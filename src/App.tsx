@@ -3,6 +3,7 @@ import { BottomNav } from './components/BottomNav';
 import { GlassPanel } from './components/GlassPanel';
 import { AIInsight } from './components/AIInsight';
 import { PairCard } from './components/PairCard';
+import { TradeAnalysisModal } from './components/TradeAnalysisModal';
 import { MarketTerminal } from './components/MarketTerminal';
 import { MarketSparkline } from './components/MarketSparkline';
 import { MarketLab } from './components/MarketLab';
@@ -103,6 +104,7 @@ export default function App() {
   const [dark, setDark] = useState(false);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
+  const [tradeAnalysisPair, setTradeAnalysisPair] = useState<MarketPair | null>(null);
   const [alerts, setAlerts] = useState<string[]>([]);
   const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>([]);
   const [alertNotice, setAlertNotice] = useState<string | null>(null);
@@ -318,6 +320,14 @@ export default function App() {
     }
   };
 
+  const analysePairTrade = (symbol: string) => {
+    const pair = markets.find((item) => item.symbol === symbol);
+    if (!pair) return;
+    setTradeAnalysisPair({ ...pair, sparkline: [...pair.sparkline] });
+    setSheetOpen(false);
+    setToolsOpen(false);
+  };
+
   const toggleFavorite = (symbol: string) => {
     setFavoriteSymbols((current) => current.includes(symbol) ? current.filter((item) => item !== symbol) : [...current, symbol]);
   };
@@ -381,12 +391,13 @@ export default function App() {
         <div className="hero-actions">
           <button className="primary-button" onClick={() => window.open(EXNESS_URL, '_blank', 'noopener,noreferrer')}>Trade on Exness <Icon name="arrow" size={15} /></button>
           <button className="secondary-button" onClick={() => openPair(selected.symbol)}>Open analysis</button>
+          <button className="secondary-button trade-analysis-entry" onClick={() => analysePairTrade(selected.symbol)}><Icon name="spark" size={15} /> Analyse trade</button>
         </div>
         <div className="disclaimer-line"><Icon name="shield" size={14} /> Informational only — not financial advice.</div>
       </GlassPanel>
 
       <div className="section-heading"><div><span className="eyebrow">YOUR SPACE</span><h2>Watchlist</h2></div><button className="text-button" onClick={() => setActiveTab('markets')}>Manage <Icon name="chevron" size={14} /></button></div>
-      <div className="pair-grid compact">{(favorites.length ? favorites : markets.slice(0, 2)).slice(0, 4).map((pair) => <PairCard key={pair.symbol} pair={pair} favorite={favoriteSymbols.includes(pair.symbol)} onOpen={() => openPair(pair.symbol)} onToggleFavorite={() => toggleFavorite(pair.symbol)} />)}</div>
+      <div className="pair-grid compact">{(favorites.length ? favorites : markets.slice(0, 2)).slice(0, 4).map((pair) => <PairCard key={pair.symbol} pair={pair} favorite={favoriteSymbols.includes(pair.symbol)} onOpen={() => openPair(pair.symbol)} onToggleFavorite={() => toggleFavorite(pair.symbol)} onAnalyzeTrade={() => analysePairTrade(pair.symbol)} />)}</div>
 
       <div className="section-heading"><div><span className="eyebrow">MARKET PULSE</span><h2>Movers</h2></div><span className="muted-small">24h change</span></div>
       <div className="movers-row">{movers.map((pair) => <button className="mover-card" key={pair.symbol} onClick={() => openPair(pair.symbol)}><span>{pair.symbol}</span><strong className={pair.change24h >= 0 ? 'positive' : 'negative'}>{pair.change24h >= 0 ? '+' : ''}{pair.change24h.toFixed(2)}%</strong><MarketSparkline points={pair.sparkline} positive={pair.change24h >= 0} /></button>)}</div>
@@ -407,7 +418,7 @@ export default function App() {
       <GlassPanel className="search-panel"><Icon name="search" size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search EUR/USD, JPY, gold…" />{search && <button className="clear-button" onClick={() => setSearch('')}>×</button>}<button className="refresh-button" onClick={() => { setLoadingData(true); void fetchLiveMarkets(markets).then(setMarkets).finally(() => setLoadingData(false)); }}>{loadingData ? '…' : '↻'}</button></GlassPanel>
       <div className="filter-row">{(['All', 'Majors', 'Metals', 'Favorites'] as const).map((filter) => <button key={filter} className={`filter-chip ${marketFilter === filter ? 'active' : ''}`} onClick={() => setMarketFilter(filter)}>{filter}</button>)}</div>
       <div className="market-summary-row"><GlassPanel className="summary-card"><span>Pairs tracked</span><strong>{markets.length}</strong><small>FX + metals</small></GlassPanel><GlassPanel className="summary-card"><span>Biggest move</span><strong>{movers[0]?.symbol}</strong><small>{movers[0]?.change24h.toFixed(2)}%</small></GlassPanel><GlassPanel className="summary-card"><span>Data mode</span><strong>{API_ENABLED ? 'Provider' : 'Preview'}</strong><small>{lastSync ? formatAge(lastSync) : 'Local fallback'}</small></GlassPanel></div>
-      <div className="pair-grid">{filteredMarkets.map((pair) => <PairCard key={pair.symbol} pair={pair} favorite={favoriteSymbols.includes(pair.symbol)} onOpen={() => openPair(pair.symbol)} onToggleFavorite={() => toggleFavorite(pair.symbol)} />)}</div>
+      <div className="pair-grid">{filteredMarkets.map((pair) => <PairCard key={pair.symbol} pair={pair} favorite={favoriteSymbols.includes(pair.symbol)} onOpen={() => openPair(pair.symbol)} onToggleFavorite={() => toggleFavorite(pair.symbol)} onAnalyzeTrade={() => analysePairTrade(pair.symbol)} />)}</div>
     </>
   );
 
@@ -461,6 +472,8 @@ export default function App() {
           <div className="tools-panel-section"><span>LEARN</span><button onClick={() => { setActiveTab('learn'); setToolsOpen(false); }}><span><Icon name="news" size={17} /></span><strong>Learn forex</strong><small>Short lessons & glossary</small></button></div>
         </div>}
       </div>
+
+      {tradeAnalysisPair && <TradeAnalysisModal key={tradeAnalysisPair.symbol} pair={tradeAnalysisPair} live={marketStatus === 'live'} onClose={() => setTradeAnalysisPair(null)} onOpenPair={() => { const symbol = tradeAnalysisPair.symbol; setTradeAnalysisPair(null); void openPair(symbol); }} />}
 
       {sheetOpen && selected && <MarketTerminal pair={selected} markets={markets} aiText={aiText} aiLoading={aiLoading} onClose={() => setSheetOpen(false)} onAlert={() => { setAlertTarget(formatPrice(selected)); setOverlay('alert'); setSheetOpen(false); }} onTrade={(side) => { window.open(EXNESS_URL + (EXNESS_URL.includes('?') ? '&' : '?') + 'berrex_side=' + side + '&berrex_symbol=' + encodeURIComponent(selected.symbol), '_blank', 'noopener,noreferrer'); }} />}
 

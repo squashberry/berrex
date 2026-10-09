@@ -1075,3 +1075,114 @@ button{-webkit-tap-highlight-color:transparent}
 .feed-offline .live-dot{background:var(--red);box-shadow:0 0 0 4px color-mix(in srgb,var(--red) 12%,transparent)}
 .demo-live-banner.offline{border-color:color-mix(in srgb,var(--red) 24%,var(--line));background:color-mix(in srgb,var(--red) 5%,var(--surface-soft))}
 .demo-live-banner.offline .live-dot{background:var(--red);box-shadow:0 0 0 4px color-mix(in srgb,var(--red) 11%,transparent)}
+
+
+/* Per-pair trade analysis */
+.pair-card{display:flex;flex-direction:column;min-width:0;cursor:default}
+.pair-card-top{align-items:flex-start;gap:9px}
+.pair-card-heading{display:flex;flex:1;min-width:0;padding:0;background:transparent;text-align:left;cursor:pointer}
+.pair-card-heading>span{display:block;min-width:0}
+.pair-card-heading .pair-name{display:block}
+.pair-card-main{display:block;width:100%;min-width:0;padding:0;border:0;background:transparent;text-align:left;cursor:pointer}
+.pair-card-main .pair-card-price-row{display:flex;width:100%}
+.pair-card-main .sparkline{margin-top:5px}
+.pair-card-actions{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.pair-analyze-button{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:38px;padding:8px 10px;border:1px solid color-mix(in srgb,var(--accent) 18%,var(--line));border-radius:12px;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:820;cursor:pointer}
+.pair-analyze-button span{flex:1;text-align:left}
+.pair-analyze-button:hover{background:color-mix(in srgb,var(--accent) 15%,var(--surface))}
+.trade-analysis-entry{white-space:nowrap}
+.trade-analysis-backdrop{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(5,10,20,.62);backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);overflow-y:auto;animation:trade-analysis-fade .18s ease-out}
+.trade-analysis-dialog{width:min(640px,100%);max-height:min(94dvh,920px);overflow-y:auto;overscroll-behavior:contain;padding:22px;border:1px solid var(--line);border-radius:28px;background:var(--surface-solid);box-shadow:0 35px 100px rgba(0,0,0,.35);animation:trade-analysis-enter .24s cubic-bezier(.2,.8,.2,1)}
+.trade-analysis-top{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.trade-analysis-brand{display:flex;align-items:center;gap:12px}
+.trade-analysis-brand h2{margin:4px 0 0;font-size:25px;letter-spacing:-.045em}
+.trade-analysis-icon{width:42px;height:42px;display:grid;place-items:center;color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 15%,var(--line));border-radius:15px}
+.trade-analysis-pair{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:22px 0 16px;padding:14px 15px;border-radius:18px;border:1px solid var(--line);background:var(--surface-soft)}
+.trade-analysis-pair>div:first-child strong,.trade-analysis-pair>div:first-child span{display:block}
+.trade-analysis-pair>div:first-child strong{font-size:19px;letter-spacing:-.035em}
+.trade-analysis-pair>div:first-child span{margin-top:3px;color:var(--muted);font-size:11px}
+.trade-analysis-current{text-align:right}
+.trade-analysis-current span,.trade-analysis-current strong{display:block}
+.trade-analysis-current span{color:var(--muted);font-size:9px;font-weight:850;letter-spacing:.08em}
+.trade-analysis-current strong{margin-top:4px;font-size:18px;font-variant-numeric:tabular-nums;letter-spacing:-.035em}
+.trade-analysis-loading{padding:26px 8px 12px;text-align:center}
+.trade-analysis-loading h3{margin:14px 0 6px;font-size:22px;letter-spacing:-.04em}
+.trade-analysis-loading p{margin:0;color:var(--muted);font-size:13px}
+.trade-analysis-loading small{display:block;margin-top:18px;color:var(--muted);font-size:11px}
+.analysis-pulse{display:flex;align-items:center;justify-content:center;gap:7px;height:48px}
+.analysis-pulse span{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:trade-analysis-pulse 1s ease-in-out infinite}
+.analysis-pulse span:nth-child(2){animation-delay:.14s}
+.analysis-pulse span:nth-child(3){animation-delay:.28s}
+.analysis-progress{width:min(290px,90%);height:5px;margin:22px auto 0;border-radius:99px;background:var(--accent-soft);overflow:hidden}
+.analysis-progress span{display:block;height:100%;border-radius:99px;background:var(--accent);transition:width .25s ease}
+.trade-analysis-warning{display:flex;align-items:flex-start;gap:10px;padding:12px 13px;margin:0 0 12px;border-radius:15px;border:1px solid color-mix(in srgb,#c87575 28%,var(--line));background:color-mix(in srgb,#c87575 8%,var(--surface-soft));color:var(--red)}
+.trade-analysis-warning svg{flex:0 0 auto;margin-top:1px}
+.trade-analysis-warning strong,.trade-analysis-warning span{display:block}
+.trade-analysis-warning strong{font-size:12px}
+.trade-analysis-warning span{margin-top:3px;font-size:11px;line-height:1.45;color:var(--text)}
+.trade-signal-card{padding:17px;border-radius:20px;border:1px solid var(--line);background:var(--surface-soft)}
+.trade-signal-card.buy-signal{border-color:color-mix(in srgb,var(--green) 30%,var(--line));background:linear-gradient(125deg,color-mix(in srgb,var(--green) 7%,var(--surface-soft)),var(--surface-soft))}
+.trade-signal-card.wait-signal{border-color:color-mix(in srgb,#c9a746 30%,var(--line));background:linear-gradient(125deg,color-mix(in srgb,#c9a746 8%,var(--surface-soft)),var(--surface-soft))}
+.trade-signal-card.expired{border-color:color-mix(in srgb,var(--red) 30%,var(--line));background:color-mix(in srgb,var(--red) 6%,var(--surface-soft))}
+.trade-signal-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.trade-signal-badge{display:inline-flex;align-items:center;min-height:26px;padding:0 9px;border-radius:9px;background:var(--surface-solid);border:1px solid var(--line);color:var(--text);font-size:9px;font-weight:900;letter-spacing:.08em}
+.trade-signal-source{color:var(--muted);font-size:8px;font-weight:850;letter-spacing:.1em;text-align:right}
+.trade-signal-main{display:flex;align-items:baseline;gap:11px;margin-top:13px;flex-wrap:wrap}
+.trade-signal-main>strong{font-size:34px;letter-spacing:-.055em}
+.trade-signal-main>span{color:var(--muted);font-size:12px}
+.trade-signal-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px}
+.trade-signal-metrics>div{min-width:0;padding:10px 11px;border:1px solid var(--line);border-radius:13px;background:color-mix(in srgb,var(--surface-solid) 45%,transparent)}
+.trade-signal-metrics span,.trade-signal-metrics strong{display:block}
+.trade-signal-metrics span{color:var(--muted);font-size:9px}
+.trade-signal-metrics strong{margin-top:5px;font-size:13px;font-variant-numeric:tabular-nums}
+.trade-price-levels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:11px}
+.trade-price-levels>div{min-width:0;padding:12px 11px;border:1px solid var(--line);border-radius:15px;background:var(--surface)}
+.trade-price-levels span,.trade-price-levels strong,.trade-price-levels small{display:block}
+.trade-price-levels span{color:var(--muted);font-size:10px}
+.trade-price-levels strong{margin-top:7px;font-size:16px;letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+.trade-price-levels small{margin-top:4px;color:var(--muted);font-size:9px;line-height:1.35}
+.trade-price-levels .level-stop strong{color:var(--red)}
+.trade-price-levels .level-target strong{color:var(--green)}
+.trade-validity{display:flex;align-items:center;gap:11px;margin-top:11px;padding:12px 13px;border-radius:15px;border:1px solid var(--line);background:var(--surface-soft)}
+.validity-clock{width:34px;height:34px;display:grid;place-items:center;flex:0 0 auto;border-radius:11px;background:var(--accent-soft);color:var(--accent)}
+.trade-validity>div{flex:1;min-width:0}
+.trade-validity>div strong,.trade-validity>div small{display:block}
+.trade-validity>div strong{font-size:11px}
+.trade-validity>div small{margin-top:3px;color:var(--muted);font-size:10px;line-height:1.35}
+.trade-validity>b{font-variant-numeric:tabular-nums;font-size:19px;letter-spacing:-.035em}
+.trade-validity.expired{border-color:color-mix(in srgb,var(--red) 30%,var(--line));color:var(--red)}
+.trade-analysis-reasons{margin-top:18px}
+.trade-reason{display:flex;align-items:flex-start;gap:9px;margin-top:10px}
+.trade-reason>span{display:grid;place-items:center;width:22px;height:22px;flex:0 0 auto;border-radius:8px;background:var(--accent-soft);color:var(--accent);font-size:10px;font-weight:850}
+.trade-reason p{margin:2px 0 0;color:var(--muted);font-size:11px;line-height:1.5}
+.trade-ai-commentary{margin-top:15px;padding:13px;border-radius:15px;border:1px solid var(--line);background:var(--surface-soft)}
+.trade-ai-commentary .section-kicker{display:flex;align-items:center;gap:6px}
+.trade-ai-commentary p{margin:8px 0 0;font-size:12px;line-height:1.55}
+.trade-analysis-disclaimer{display:flex;align-items:flex-start;gap:6px;margin-top:16px;color:var(--muted);font-size:10px;line-height:1.5}
+.trade-analysis-disclaimer svg{flex:0 0 auto;margin-top:1px}
+.trade-analysis-actions{display:flex;gap:9px;margin-top:16px}
+.trade-analysis-actions>button{flex:1;min-width:0}
+@keyframes trade-analysis-pulse{0%,100%{opacity:.35;transform:translateY(0) scale(.8)}50%{opacity:1;transform:translateY(-5px) scale(1.05)}}
+@keyframes trade-analysis-fade{from{opacity:0}to{opacity:1}}
+@keyframes trade-analysis-enter{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:600px){
+  .pair-analyze-button{min-height:36px;font-size:10px}
+  .hero-actions{flex-wrap:wrap}
+  .hero-actions>button{flex:1 1 130px}
+  .hero-actions .trade-analysis-entry{flex:1 1 100%}
+  .trade-analysis-backdrop{padding:8px;align-items:center}
+  .trade-analysis-dialog{padding:15px;border-radius:23px;max-height:96dvh}
+  .trade-analysis-brand h2{font-size:22px}
+  .trade-analysis-pair{margin:17px 0 12px;padding:12px}
+  .trade-analysis-current strong{font-size:16px}
+  .trade-signal-card{padding:13px}
+  .trade-signal-main>strong{font-size:30px}
+  .trade-price-levels{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .trade-price-levels>div:first-child{grid-column:1/-1}
+  .trade-price-levels strong{font-size:15px}
+  .trade-signal-metrics{gap:6px}
+  .trade-signal-metrics>div{padding:9px 8px}
+  .trade-signal-metrics strong{font-size:12px}
+  .trade-analysis-actions{flex-direction:column-reverse}
+  .trade-analysis-actions>button{width:100%}
+}
