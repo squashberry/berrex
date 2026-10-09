@@ -696,7 +696,7 @@ export function DemoTrading({
           <h1>Demo account</h1>
           <p className="subtle">A risk-free trading terminal using the current BerreX market feed.</p>
         </div>
-        <button className="secondary-button demo-reset-top" onClick={resetDemo}><Icon name="refresh" size={15} /> Reset</button>
+        <button className="secondary-button demo-reset-top" onClick={resetDemo}><span aria-hidden="true">↻</span> Reset</button>
       </div>
 
       <GlassPanel className="demo-account-hero">
